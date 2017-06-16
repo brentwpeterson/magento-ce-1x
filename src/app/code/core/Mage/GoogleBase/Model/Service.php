@@ -38,10 +38,10 @@ class Mage_GoogleBase_Model_Service extends Varien_Object
      *
      * @return Zend_Http_Client
      */
-    public function getClient($storeId = null)
+    public function getClient()
     {
-        $user = Mage::getStoreConfig('google/googlebase/login', $storeId);
-        $pass = Mage::getStoreConfig('google/googlebase/password', $storeId);
+        $user = Mage::getStoreConfig('google/googlebase/login');
+        $pass = Mage::getStoreConfig('google/googlebase/password');
 
         // Create an authenticated HTTP client
         $errorMsg = Mage::helper('googlebase')->__('Unable to connect to Google Base. Please, check Account settings in configuration.');
@@ -63,10 +63,10 @@ class Mage_GoogleBase_Model_Service extends Varien_Object
      *
      * @return Zend_Gdata_Gbase
      */
-    public function getService($storeId = null)
+    public function getService()
     {
         if (!$this->_service) {
-            $service = $this->_connect($storeId);
+            $service = $this->_connect();
             $this->_service = $service;
         }
         return $this->_service;
@@ -77,9 +77,9 @@ class Mage_GoogleBase_Model_Service extends Varien_Object
      *
      * @return Zend_Gdata_Gbase
      */
-    protected function _connect($storeId = null)
+    protected function _connect()
     {
-        $client = $this->getClient($storeId);
+        $client = $this->getClient();
         $service = new Zend_Gdata_Gbase($client);
         return $service;
     }

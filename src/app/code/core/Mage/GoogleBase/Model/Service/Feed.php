@@ -42,10 +42,10 @@ class Mage_GoogleBase_Model_Service_Feed extends Mage_GoogleBase_Model_Service
      * @param string $location
      * @return Zend_Gdata_Feed
      */
-    public function getFeed($location = null, $storeId = null)
+    public function getFeed($location = null)
     {
         $query = new Zend_Gdata_Query($location);
-        return $this->getService($storeId)->getFeed($query);
+        return $this->getService()->getFeed($query);
     }
 
     /**
@@ -53,9 +53,9 @@ class Mage_GoogleBase_Model_Service_Feed extends Mage_GoogleBase_Model_Service
      *
      * @return array
      */
-    public function getItemsStatsArray($storeId = null)
+    public function getItemsStatsArray()
     {
-        $feed = $this->getFeed(self::ITEMS_LOCATION, $storeId);
+        $feed = $this->getFeed(self::ITEMS_LOCATION);
         $result = array();
         foreach ($feed as $entry) {
             $draft = 'no';
@@ -88,13 +88,13 @@ class Mage_GoogleBase_Model_Service_Feed extends Mage_GoogleBase_Model_Service
      *
      * @return array
      */
-    public function getItemTypes($storeId = null)
+    public function getItemTypes()
     {
         if (is_array($this->_itemTypes)) {
             return $this->_itemTypes;
         }
         $location = self::ITEM_TYPES_LOCATION . '/' . Mage::app()->getLocale()->getLocale();
-        $feed = $this->getFeed($location, $storeId);
+        $feed = $this->getFeed($location);
 
         $itemTypes = array();
         foreach ($feed->entries as $entry) {
@@ -132,9 +132,9 @@ class Mage_GoogleBase_Model_Service_Feed extends Mage_GoogleBase_Model_Service
      * @param string $type Google Base Item Type
      * @return array
      */
-    public function getAttributes($type, $storeId = null)
+    public function getAttributes($type)
     {
-        $itemTypes = $this->getItemTypes($storeId);
+        $itemTypes = $this->getItemTypes();
         if (isset($itemTypes[$type]) && $itemTypes[$type] instanceof Varien_Object) {
             return $itemTypes[$type]->getAttributes();
         }

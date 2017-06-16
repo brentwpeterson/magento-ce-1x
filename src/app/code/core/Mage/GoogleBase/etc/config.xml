@@ -81,18 +81,16 @@
             <googlebase><class>Mage_GoogleBase_Block</class></googlebase>
         </blocks>
     </global>
-    <admin>
+    <adminhtml>
         <routers>
             <googlebase>
-                <use>admin</use>
+                <use>standard</use>
                 <args>
                     <module>Mage_GoogleBase</module>
                     <frontName>googlebase</frontName>
                 </args>
             </googlebase>
         </routers>
-    </admin>
-    <adminhtml>
         <translate>
             <modules>
                 <Mage_GoogleBase>
@@ -148,32 +146,6 @@
                  </children>
             </catalog>
         </menu>
-        <acl>
-            <resources>
-                <admin>
-                    <children>
-                        <catalog>
-                            <children>
-                                <googlebase>
-                                    <title>Google Base</title>
-                                    <sort_order>500</sort_order>
-                                    <children>
-                                        <types>
-                                            <title>Manage Attributes</title>
-                                            <sort_order>0</sort_order>
-                                        </types>
-                                        <items>
-                                            <title>Manage Items</title>
-                                            <sort_order>5</sort_order>
-                                        </items>
-                                    </children>
-                                </googlebase>
-                            </children>
-                        </catalog>
-                    </children>
-                </admin>
-            </resources>
-        </acl>
     </adminhtml>
     <frontend>
         <routers>
@@ -191,9 +163,6 @@
             <base>
                 <active>0</active>
             </base>
-            <googlebase>
-                <target_country>US</target_country>
-            </googlebase>
         </google>
     </default>
 </config>

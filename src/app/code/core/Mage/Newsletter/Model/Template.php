@@ -142,7 +142,7 @@ class Mage_Newsletter_Model_Template extends Varien_Object
 
     public function getProcessedTemplate(array $variables = array(), $usePreprocess=false)
     {
-        $processor = Mage::getModel('core/email_template_filter');
+        $processor = new Varien_Filter_Template();
 
         if(!$this->_preprocessFlag) {
             $variables['this'] = $this;

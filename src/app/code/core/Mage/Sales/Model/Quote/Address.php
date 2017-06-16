@@ -62,13 +62,7 @@ class Mage_Sales_Model_Quote_Address extends Mage_Customer_Model_Address_Abstrac
     {
         parent::_beforeSave();
         if ($this->getQuote()) {
-            $quoteId = $this->getQuote()->getId();
-            if ($quoteId) {
-                $this->setQuoteId($quoteId);
-            }
-            else {
-                $this->_dataSaveAllowed = false;
-            }
+            $this->setQuoteId($this->getQuote()->getId());
         }
         return $this;
     }
