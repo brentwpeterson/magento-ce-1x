@@ -99,45 +99,30 @@ class Mage_Adminhtml_Block_Customer_Edit_Tab_Addresses extends Mage_Adminhtml_Bl
         return $this->getChildHtml('delete_button');
     }
 
-    /**
-     * Initialize form object
-     *
-     * @return Mage_Adminhtml_Block_Customer_Edit_Tab_Addresses
-     */
     public function initForm()
     {
-        /* @var $customer Mage_Customer_Model_Customer */
         $customer = Mage::registry('current_customer');
 
         $form = new Varien_Data_Form();
-        $fieldset = $form->addFieldset('address_fieldset', array(
-            'legend'    => Mage::helper('customer')->__("Edit Customer's Address"))
-        );
+        $fieldset = $form->addFieldset('address_fieldset', array('legend'=>Mage::helper('customer')->__("Edit Customer's Address")));
 
         $addressModel = Mage::getModel('customer/address');
-        /* @var $addressForm Mage_Customer_Model_Form */
-        $addressForm = Mage::getModel('customer/form');
-        $addressForm->setFormCode('adminhtml_customer_address')
-            ->setEntity($addressModel);
 
-        $attributes = $addressForm->getAttributes();
-        foreach ($attributes as $attribute) {
-            $attribute->unsIsVisible();
+        $this->_setFieldset($addressModel->getAttributes(), $fieldset);
+
+        if ($streetElement = $form->getElement('street')) {
+            $streetElement->setLineCount(Mage::helper('customer/address')->getStreetLines());
         }
-        $this->_setFieldset($attributes, $fieldset);
 
-        $regionElement = $form->getElement('region');
-        if ($regionElement) {
+        if ($regionElement = $form->getElement('region')) {
             $regionElement->setRenderer(Mage::getModel('adminhtml/customer_renderer_region'));
         }
 
-        $regionElement = $form->getElement('region_id');
-        if ($regionElement) {
+        if ($regionElement = $form->getElement('region_id')) {
             $regionElement->setNoDisplay(true);
         }
 
-        $country = $form->getElement('country_id');
-        if ($country) {
+        if ($country = $form->getElement('country_id')) {
             $country->addClass('countries');
         }
 
@@ -171,19 +156,5 @@ class Mage_Adminhtml_Block_Customer_Edit_Tab_Addresses extends Mage_Adminhtml_Bl
     public function getTemplatePrefix()
     {
         return '_template_';
-    }
-
-    /**
-     * Return predefined additional element types
-     *
-     * @return array
-     */
-    protected function _getAdditionalElementTypes()
-    {
-        return array(
-            'file'      => Mage::getConfig()->getBlockClassName('adminhtml/customer_form_element_file'),
-            'image'     => Mage::getConfig()->getBlockClassName('adminhtml/customer_form_element_image'),
-            'boolean'   => Mage::getConfig()->getBlockClassName('adminhtml/customer_form_element_boolean'),
-        );
     }
 }

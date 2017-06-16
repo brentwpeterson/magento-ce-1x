@@ -70,11 +70,7 @@ class Mage_Catalog_Model_Resource_Eav_Mysql4_Product_Flat
      */
     public function setStoreId($store)
     {
-        if (is_int($store)) {
-            $this->_storeId = $store;
-        } else {
-            $this->_storeId = Mage::app()->getStore($store)->getId();
-        }
+        $this->_storeId = Mage::app()->getStore($store)->getId();
         return $this;
     }
 

@@ -35,17 +35,6 @@ class Mage_SalesRule_Model_Rule extends Mage_Rule_Model_Rule
     const COUPON_TYPE_AUTO      = 3;
 
     /**
-     * Rule type actions
-     */
-    const TO_PERCENT_ACTION = 'to_percent';
-    const BY_PERCENT_ACTION = 'by_percent';
-    const TO_FIXED_ACTION   = 'to_fixed';
-    const BY_FIXED_ACTION   = 'by_fixed';
-    const CART_FIXED_ACTION = 'cart_fixed';
-    const BUY_X_GET_Y_ACTION = 'buy_x_get_y';
-
-
-    /**
      * @var Mage_SalesRule_Model_Coupon_CodegeneratorInterface
      */
     protected static $_couponCodeGenerator;
@@ -217,7 +206,7 @@ class Mage_SalesRule_Model_Rule extends Mage_Rule_Model_Rule
     }
 
     /**
-     * Save rule labels after rule save and process product attributes used in actions and conditions
+     * Save rule labels after rule save
      *
      * @return Mage_SalesRule_Model_Rule
      */
@@ -236,15 +225,6 @@ class Mage_SalesRule_Model_Rule extends Mage_Rule_Model_Rule
                 ->save();
         } else {
             $this->getPrimaryCoupon()->delete();
-        }
-
-        //Saving attributes used in rule
-        $ruleProductAttributes = array_merge(
-            $this->_getUsedAttributes($this->getConditionsSerialized()),
-            $this->_getUsedAttributes($this->getActionsSerialized())
-        );
-        if (count($ruleProductAttributes)) {
-            $this->getResource()->setActualProductAttributes($this, $ruleProductAttributes);
         }
         return parent::_afterSave();
     }
@@ -371,23 +351,5 @@ class Mage_SalesRule_Model_Rule extends Mage_Rule_Model_Rule
         }
 
         return $coupon;
-    }
-
-    /**
-     * Return all product attributes used on serialized action or condition
-     *
-     * @param string $serializedString
-     * @return array
-     */
-    protected function _getUsedAttributes($serializedString)
-    {
-        $result = array();
-        if (preg_match_all('~s:32:"salesrule/rule_condition_product";s:9:"attribute";s:\d+:"(.*?)"~s',
-            $serializedString, $matches)){
-            foreach ($matches[1] as $offset => $attributeCode) {
-                $result[] = $attributeCode;
-            }
-        }
-        return $result;
     }
 }

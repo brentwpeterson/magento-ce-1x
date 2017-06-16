@@ -15,24 +15,18 @@
  * @category   Zend
  * @package    Zend_Soap
  * @subpackage Client
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: Client.php 20096 2010-01-06 02:05:09Z bkarwin $
+ * @version    $Id: Client.php 18951 2009-11-12 16:26:19Z alexander $
  */
 
-/**
- * @see Zend_Soap_Server
- */
+/** Zend_Soap_Server */
 #require_once 'Zend/Soap/Server.php';
 
-/**
- * @see Zend_Soap_Client_Local
- */
+/** Zend_Soap_Client_Local */
 #require_once 'Zend/Soap/Client/Local.php';
 
-/**
- * @see Zend_Soap_Client_Common
- */
+/** Zend_Soap_Client_Common */
 #require_once 'Zend/Soap/Client/Common.php';
 
 /**
@@ -41,7 +35,7 @@
  * @category   Zend
  * @package    Zend_Soap
  * @subpackage Client
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Soap_Client
@@ -317,18 +311,8 @@ class Zend_Soap_Client
         $options['user_agent']     = $this->getUserAgent();
 
         foreach ($options as $key => $value) {
-            /*
-             * ugly hack as I don't know if checking for '=== null'
-             * breaks some other option
-             */
-            if ($key == 'user_agent') {
-                if ($value === null) {
-                    unset($options[$key]);
-                }
-            } else {
-                if ($value == null) {
-                    unset($options[$key]);
-                }
+            if ($value == null) {
+                unset($options[$key]);
             }
         }
 
@@ -438,14 +422,13 @@ class Zend_Soap_Client
      */
     public function validateUrn($urn)
     {
-        $scheme = parse_url($urn, PHP_URL_SCHEME);
-        if ($scheme === false || $scheme === null) {
-            #require_once 'Zend/Soap/Client/Exception.php';
-            throw new Zend_Soap_Client_Exception('Invalid URN');
+        $segs = parse_url($urn);
+        if (isset($segs['scheme'])) {
+            return true;
         }
 
-        return true;
-
+        #require_once 'Zend/Soap/Client/Exception.php';
+        throw new Zend_Soap_Client_Exception('Invalid URN');
     }
 
     /**
@@ -877,23 +860,17 @@ class Zend_Soap_Client
     /**
      * Set the string to use in User-Agent header
      *
-     * @param  string|null $userAgent
+     * @param  string $userAgent
      * @return Zend_Soap_Client
      */
     public function setUserAgent($userAgent)
     {
-        if ($userAgent === null) {
-            $this->_user_agent = null;
-        } else {
-            $this->_user_agent = (string)$userAgent;
-        }
+        $this->_user_agent = (string)$userAgent;
         return $this;
     }
 
     /**
      * Get current string to use in User-Agent header
-     *
-     * @return string|null
      */
     public function getUserAgent()
     {

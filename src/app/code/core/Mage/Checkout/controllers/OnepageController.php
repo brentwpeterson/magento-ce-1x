@@ -220,7 +220,7 @@ class Mage_Checkout_OnepageController extends Mage_Checkout_Controller_Action
         $session->clear();
         $this->loadLayout();
         $this->_initLayoutMessages('checkout/session');
-        Mage::dispatchEvent('checkout_onepage_controller_success_action', array('order_ids' => array($lastOrderId)));
+        Mage::dispatchEvent('checkout_onepage_controller_success_action');
         $this->renderLayout();
     }
 
@@ -289,9 +289,8 @@ class Mage_Checkout_OnepageController extends Mage_Checkout_Controller_Action
             return;
         }
         if ($this->getRequest()->isPost()) {
-//            $postData = $this->getRequest()->getPost('billing', array());
-//            $data = $this->_filterPostData($postData);
-            $data = $this->getRequest()->getPost('billing', array());
+            $postData = $this->getRequest()->getPost('billing', array());
+            $data = $this->_filterPostData($postData);
             $customerAddressId = $this->getRequest()->getPost('billing_address_id', false);
 
             if (isset($data['email'])) {

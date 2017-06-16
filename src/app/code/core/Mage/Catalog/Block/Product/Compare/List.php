@@ -145,7 +145,7 @@ class Mage_Catalog_Block_Product_Compare_List extends Mage_Catalog_Block_Product
     public function getProductAttributeValue($product, $attribute)
     {
         if (!$product->hasData($attribute->getAttributeCode())) {
-            return Mage::helper('catalog')->__('N/A');
+            return '&nbsp;';
         }
 
         if ($attribute->getSourceModel() || in_array($attribute->getFrontendInput(), array('select','boolean','multiselect'))) {
@@ -155,7 +155,7 @@ class Mage_Catalog_Block_Product_Compare_List extends Mage_Catalog_Block_Product
         else {
             $value = $product->getData($attribute->getAttributeCode());
         }
-        return ((string)$value == '') ? Mage::helper('catalog')->__('No') : $value;
+        return $value ? $value : '&nbsp;';
     }
 
     /**

@@ -248,14 +248,25 @@ class Mage_CatalogInventory_Model_Indexer_Stock extends Mage_Index_Model_Indexer
         /* @var $object Mage_CatalogInventory_Model_Stock_Item */
         $object      = $event->getDataObject();
 
+//        $properties = array(
+//            'manage_stock',
+//            'use_config_manage_stock',
+//            'is_in_stock'
+//        );
+
+//        $reindexStock = false;
+//        foreach ($properties as $property) {
+//            if ($event->dataHasChangedFor($property)) {
+//                $reindexStock = true;
+//                break;
+//            }
+//        }
+
         $event->addNewData('reindex_stock', 1);
         $event->addNewData('product_id', $object->getProductId());
 
-        // Saving stock item without product object
-        // Register re-index price process if products out of stock hidden on Front-end
-        if (!Mage::helper('cataloginventory')->isShowOutOfStock() && !$object->getProduct()) {
-            $event->addNewData('force_reindex_required', 1);
-        }
+//        if ($reindexStock && !Mage::helper('cataloginventory')->isShowOutOfStock()) {
+//        }
 
         return $this;
     }

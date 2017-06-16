@@ -35,124 +35,139 @@
 class Mage_GoogleAnalytics_Block_Ga extends Mage_Core_Block_Text
 {
     /**
-     * @deprecated after 1.4.1.1
-     * @see self::_getOrdersTrackingCode()
+     * Retrieve Quote Data HTML
+     *
      * @return string
      */
     public function getQuoteOrdersHtml()
     {
-        return '';
+        $quote = $this->getQuote();
+        if (!$quote) {
+            return '';
+        }
+
+        if ($quote instanceof Mage_Sales_Model_Quote) {
+            $quoteId = $quote->getId();
+        } else {
+            $quoteId = $quote;
+        }
+
+        if (!$quoteId) {
+            return '';
+        }
+
+        $orders = Mage::getResourceModel('sales/order_collection')
+            ->addAttributeToFilter('quote_id', $quoteId)
+            ->load();
+
+        $html = '';
+        foreach ($orders as $order) {
+            $html .= $this->setOrder($order)->getOrderHtml();
+        }
+
+        return $html;
     }
 
     /**
-     * @deprecated after 1.4.1.1
-     * self::_getOrdersTrackingCode()
+     * Retrieve Order Data HTML
+     *
      * @return string
      */
     public function getOrderHtml()
     {
-        return '';
+
+        $order = $this->getOrder();
+        if (!$order) {
+            return '';
+        }
+
+        if (!$order instanceof Mage_Sales_Model_Order) {
+            $order = Mage::getModel('sales/order')->load($order);
+        }
+
+        if (!$order) {
+            return '';
+        }
+
+        $address = $order->getBillingAddress();
+
+        $html  = '<script type="text/javascript">' . "\n";
+        $html .= "//<![CDATA[\n";
+        $html .= '_gaq.push(["_addTrans",';
+        $html .= '"' . $order->getIncrementId() . '",';
+        $html .= '"' . $order->getAffiliation() . '",';
+        $html .= '"' . $order->getBaseGrandTotal() . '",';
+        $html .= '"' . $order->getBaseTaxAmount() . '",';
+        $html .= '"' . $order->getBaseShippingAmount() . '",';
+        $html .= '"' . $this->jsQuoteEscape($address->getCity(), '"') . '",';
+        $html .= '"' . $this->jsQuoteEscape($address->getRegion(), '"') . '",';
+        $html .= '"' . $this->jsQuoteEscape($address->getCountry(), '"') . '"';
+        $html .= ']);' . "\n";
+
+        foreach ($order->getAllItems() as $item) {
+            if ($item->getParentItemId()) {
+                continue;
+            }
+
+            $html .= '_gaq.push(["_addItem",';
+            $html .= '"' . $order->getIncrementId() . '",';
+            $html .= '"' . $this->jsQuoteEscape($item->getSku(), '"') . '",';
+            $html .= '"' . $this->jsQuoteEscape($item->getName(), '"') . '",';
+            $html .= '"' . $item->getCategory() . '",';
+            $html .= '"' . $item->getBasePrice() . '",';
+            $html .= '"' . $item->getQtyOrdered() . '"';
+            $html .= ']);' . "\n";
+        }
+
+        $html .= '_gaq.push(["_trackTrans"]);' . "\n";
+        $html .= '//]]>';
+        $html .= '</script>';
+
+        return $html;
     }
 
     /**
-     * @deprecated after 1.4.1.1
-     * @see _toHtml()
+     * Retrieve Google Account Identifier
+     *
      * @return string
      */
     public function getAccount()
     {
-        return '';
+        if (!$this->hasData('account')) {
+            $this->setAccount(Mage::getStoreConfig('google/analytics/account'));
+        }
+        return $this->getData('account');
     }
 
     /**
-     * Get a specific page name (may be customized via layout)
+     * Retrieve current page URL
      *
-     * @return string|null
+     * @return string
      */
     public function getPageName()
     {
-        return $this->_getData('page_name');
+        if (!$this->hasData('page_name')) {
+            //$queryStr = '';
+            //if ($this->getRequest() && $this->getRequest()->getQuery()) {
+            //    $queryStr = '?' . http_build_query($this->getRequest()->getQuery());
+            //}
+            $this->setPageName(Mage::getSingleton('core/url')->escape($_SERVER['REQUEST_URI']));
+        }
+        return $this->getData('page_name');
     }
 
     /**
-     * Render regular page tracking javascript code
-     * The custom "page name" may be set from layout or somewhere else. It must start from slash.
-     *
-     * @see http://code.google.com/apis/analytics/docs/gaJS/gaJSApiBasicConfiguration.html#_gat.GA_Tracker_._trackPageview
-     * @see http://code.google.com/apis/analytics/docs/gaJS/gaJSApi_gaq.html
-     * @param string $accountId
-     * @return string
-     */
-    protected function _getPageTrackingCode($accountId)
-    {
-        $optPageURL = trim($this->getPageName());
-        if ($optPageURL && preg_match('/^\/.*/i', $optPageURL)) {
-            $optPageURL = "'{$this->jsQuoteEscape($optPageURL)}'";
-        }
-        // the code compatible with google checkout shortcut (it requires a global pageTracker variable)
-        return "
-_gaq.push(function() {
-    // the global variable is created intentionally
-    pageTracker = _gat._getTracker('{$this->jsQuoteEscape($accountId)}');
-    pageTracker._trackPageview({$optPageURL});
-});
-";
-    }
-
-    /**
-     * Render information about specified orders and their items
-     *
-     * @see http://code.google.com/apis/analytics/docs/gaJS/gaJSApiEcommerce.html#_gat.GA_Tracker_._addTrans
-     * @return string
-     */
-    protected function _getOrdersTrackingCode()
-    {
-        $orderIds = $this->getOrderIds();
-        if (empty($orderIds) || !is_array($orderIds)) {
-            return;
-        }
-        $collection = Mage::getResourceModel('sales/order_collection')
-            ->addFieldToFilter('entity_id', array('in' => $orderIds))
-        ;
-        $result = array();
-        foreach ($collection as $order) {
-            if ($order->getIsVirtual()) {
-                $address = $order->getBillingAddress();
-            } else {
-                $address = $order->getShippingAddress();
-            }
-            $result[] = sprintf("_gaq.push(['_addTrans', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']);",
-                $order->getIncrementId(), Mage::app()->getStore()->getFrontendName(), $order->getBaseGrandTotal(),
-                $order->getBaseTaxAmount(), $order->getBaseShippingAmount(),
-                $this->jsQuoteEscape($address->getCity()),
-                $this->jsQuoteEscape($address->getRegion()),
-                $this->jsQuoteEscape($address->getCountry())
-            );
-            foreach ($order->getAllVisibleItems() as $item) {
-                $result[] = sprintf("_gaq.push(['_addItem', '%s', '%s', '%s', '%s', '%s', '%s']);",
-                    $order->getIncrementId(),
-                    $this->jsQuoteEscape($item->getSku()), $this->jsQuoteEscape($item->getName()),
-                    null, // there is no "category" defined for the order item
-                    $item->getBasePrice(), $item->getQtyOrdered()
-                );
-            }
-            $result[] = "_gaq.push(['_trackTrans']);";
-        }
-        return implode("\n", $result);
-    }
-
-    /**
-     * Render GA tracking scripts
+     * Prepare and return block's html output
      *
      * @return string
      */
     protected function _toHtml()
     {
-        if (!Mage::helper('googleanalytics')->isGoogleAnalyticsAvailable()) {
+        if (!Mage::getStoreConfigFlag('google/analytics/active')) {
             return '';
         }
-        $accountId = Mage::getStoreConfig(Mage_GoogleAnalytics_Helper_Data::XML_PATH_ACCOUNT);
-        return '
+
+        $this->addText('
 <!-- BEGIN GOOGLE ANALYTICS CODE -->
 <script type="text/javascript">
 //<![CDATA[
@@ -163,10 +178,20 @@ _gaq.push(function() {
     })();
 
     var _gaq = _gaq || [];
-' . $this->_getPageTrackingCode($accountId) . '
-' . $this->_getOrdersTrackingCode() . '
+    _gaq.push(["_setAccount", "' . $this->getAccount() . '"]);
+    _gaq.push(["_trackPageview", "'.$this->getPageName().'"]);
 //]]>
 </script>
-<!-- END GOOGLE ANALYTICS CODE -->';
+<!-- END GOOGLE ANALYTICS CODE -->
+        ');
+
+        $this->addText($this->getQuoteOrdersHtml());
+
+        if ($this->getGoogleCheckout()) {
+            $protocol = Mage::app()->getStore()->isCurrentlySecure() ? 'https' : 'http';
+            $this->addText('<script src="'.$protocol.'://checkout.google.com/files/digital/ga_post.js" type="text/javascript"></script>');
+        }
+
+        return parent::_toHtml();
     }
 }

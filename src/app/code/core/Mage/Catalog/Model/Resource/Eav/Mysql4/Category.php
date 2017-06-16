@@ -356,18 +356,13 @@ class Mage_Catalog_Model_Resource_Eav_Mysql4_Category extends Mage_Catalog_Model
         }
 
         if (!empty($insert) || !empty($update) || !empty($delete)) {
+
             $category->setIsChangedProductList(true);
             /**
              * Moved to index
              */
             //$categoryIds = explode('/', $category->getPath());
             //$this->refreshProductIndex($categoryIds);
-
-            /**
-             * Setting affected products to category for third party engine index refresh
-             */
-            $productIds = array_keys($insert + $delete + $update);
-            $category->setAffectedProductIds($productIds);
         }
 
         return $this;
@@ -569,32 +564,7 @@ class Mage_Catalog_Model_Resource_Eav_Mysql4_Category extends Mage_Catalog_Model
     }
 
     /**
-     * Return parent category of current category with own custom design settings
-     *
-     * @param Mage_Catalog_Model_Category $category
-     * @return Mage_Catalog_Model_Category
-     */
-    public function getParentDesignCategory($category)
-    {
-        $pathIds = array_reverse($category->getPathIds());
-        $collection = $category->getCollection()
-            ->setStore(Mage::app()->getStore())
-            ->addAttributeToSelect('custom_design')
-            ->addAttributeToSelect('custom_design_from')
-            ->addAttributeToSelect('custom_design_to')
-            ->addAttributeToSelect('page_layout')
-            ->addAttributeToSelect('custom_layout_update')
-            ->addAttributeToSelect('custom_apply_to_products')
-            ->addFieldToFilter('entity_id', array('in' => $pathIds))
-            ->addFieldToFilter('custom_use_parent_settings', 0)
-            ->addFieldToFilter('level', array('neq' => 0))
-            ->setOrder('level', 'DESC')
-            ->load();
-        return $collection->getFirstItem();
-    }
-
-    /**
-     * Return child categories
+     * Enter description here...
      *
      * @param Mage_Catalog_Model_Category $category
      * @return unknown
@@ -762,10 +732,6 @@ class Mage_Catalog_Model_Resource_Eav_Mysql4_Category extends Mage_Catalog_Model
         $data = array('path' => $newPath, 'level' => $newLevel,
             'position'=>$position, 'parent_id'=>$newParent->getId());
         $adapter->update($table, $data, $adapter->quoteInto('entity_id=?', $category->getId()));
-
-        // Update category object to new data
-        $category->addData($data);
-
         return $this;
     }
 

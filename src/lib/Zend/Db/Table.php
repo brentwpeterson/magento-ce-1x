@@ -15,13 +15,13 @@
  * @category   Zend
  * @package    Zend_Db
  * @subpackage Table
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: Table.php 20096 2010-01-06 02:05:09Z bkarwin $
+ * @version    $Id: Table.php 18951 2009-11-12 16:26:19Z alexander $
  */
 
 /**
- * @see Zend_Db_Table_Abstract
+ * Zend_Db_Table_Abstract
  */
 #require_once 'Zend/Db/Table/Abstract.php';
 
@@ -36,7 +36,7 @@
  * @category   Zend
  * @package    Zend_Db
  * @subpackage Table
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Db_Table extends Zend_Db_Table_Abstract
@@ -46,8 +46,8 @@ class Zend_Db_Table extends Zend_Db_Table_Abstract
      * __construct() - For concrete implementation of Zend_Db_Table
      *
      * @param string|array $config string can reference a Zend_Registry key for a db adapter
-     *                             OR it can reference the name of a table
-     * @param array|Zend_Db_Table_Definition $definition
+     *                             OR it can refernece the name of a table
+     * @param unknown_type $definition
      */
     public function __construct($config = array(), $definition = null)
     {
@@ -76,4 +76,9 @@ class Zend_Db_Table extends Zend_Db_Table_Abstract
 
         parent::__construct($config);
     }
+
+
+
+
+
 }

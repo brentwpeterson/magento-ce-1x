@@ -31,7 +31,7 @@
  * @package    Mage_Eav
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-abstract class Mage_Eav_Model_Entity_Collection_Abstract extends Varien_Data_Collection_Db
+class Mage_Eav_Model_Entity_Collection_Abstract extends Varien_Data_Collection_Db
 {
     /**
      * Array of items with item id key
@@ -268,14 +268,15 @@ abstract class Mage_Eav_Model_Entity_Collection_Abstract extends Varien_Data_Col
      */
     public function addAttributeToFilter($attribute, $condition=null, $joinType='inner')
     {
-        if ($attribute===null) {
+        if($attribute===null) {
             $this->getSelect();
             return $this;
         }
 
         if (is_numeric($attribute)) {
             $attribute = $this->getEntity()->getAttribute($attribute)->getAttributeCode();
-        } else if ($attribute instanceof Mage_Eav_Model_Entity_Attribute_Interface) {
+        }
+        elseif ($attribute instanceof Mage_Eav_Model_Entity_Attribute_Interface) {
             $attribute = $attribute->getAttributeCode();
         }
 
@@ -293,7 +294,7 @@ abstract class Mage_Eav_Model_Entity_Collection_Abstract extends Varien_Data_Col
         }
 
         if (!empty($conditionSql)) {
-            $this->getSelect()->where($conditionSql, null, Varien_Db_Select::TYPE_CONDITION);
+            $this->getSelect()->where($conditionSql);
         } else {
             Mage::throwException('Invalid attribute identifier for filter ('.get_class($attribute).')');
         }
@@ -787,8 +788,6 @@ abstract class Mage_Eav_Model_Entity_Collection_Abstract extends Varien_Data_Col
         Mage::dispatchEvent('eav_collection_abstract_load_before', array('collection' => $this));
         $this->_beforeLoad();
         Varien_Profiler::stop('__EAV_COLLECTION_BEFORE_LOAD__');
-
-        $this->_renderFilters();
 
         Varien_Profiler::start('__EAV_COLLECTION_LOAD_ENT__');
         $this->_loadEntities($printQuery, $logQuery);

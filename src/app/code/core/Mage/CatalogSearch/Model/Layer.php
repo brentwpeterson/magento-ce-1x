@@ -26,7 +26,7 @@
 
 class Mage_CatalogSearch_Model_Layer extends Mage_Catalog_Model_Layer
 {
-    const XML_PATH_DISPLAY_LAYER_COUNT = 'catalog/search/use_layered_navigation_count';
+    const XML_PATH_DISPLAY_LAYER_COUNT    = 'catalog/search/use_layered_navigation_count';
 
     /**
      * Get current layer product collection
@@ -37,11 +37,14 @@ class Mage_CatalogSearch_Model_Layer extends Mage_Catalog_Model_Layer
     {
         if (isset($this->_productCollections[$this->getCurrentCategory()->getId()])) {
             $collection = $this->_productCollections[$this->getCurrentCategory()->getId()];
-        } else {
-            $collection = Mage::getResourceModel('catalogsearch/fulltext_collection');
+        }
+        else {
+            $engine = Mage::helper('catalogsearch')->getEngine();
+            $collection = $engine->getResultCollection();
             $this->prepareProductCollection($collection);
             $this->_productCollections[$this->getCurrentCategory()->getId()] = $collection;
         }
+
         return $collection;
     }
 
@@ -53,8 +56,7 @@ class Mage_CatalogSearch_Model_Layer extends Mage_Catalog_Model_Layer
      */
     public function prepareProductCollection($collection)
     {
-        $collection
-            ->addAttributeToSelect(Mage::getSingleton('catalog/config')->getProductAttributes())
+        $collection->addAttributeToSelect(Mage::getSingleton('catalog/config')->getProductAttributes())
             ->addSearchFilter(Mage::helper('catalogsearch')->getQuery()->getQueryText())
             ->setStore(Mage::app()->getStore())
             ->addMinimalPrice()
@@ -65,7 +67,6 @@ class Mage_CatalogSearch_Model_Layer extends Mage_Catalog_Model_Layer
 
         Mage::getSingleton('catalog/product_status')->addVisibleFilterToCollection($collection);
         Mage::getSingleton('catalog/product_visibility')->addVisibleInSearchFilterToCollection($collection);
-
         return $this;
     }
 
@@ -77,8 +78,8 @@ class Mage_CatalogSearch_Model_Layer extends Mage_Catalog_Model_Layer
     public function getStateKey()
     {
         if ($this->_stateKey === null) {
-            $this->_stateKey = 'Q_' . Mage::helper('catalogsearch')->getQuery()->getId()
-                . '_'. parent::getStateKey();
+            $this->_stateKey = 'Q_'.Mage::helper('catalogsearch')->getQuery()->getId()
+                .'_'.parent::getStateKey();
         }
         return $this->_stateKey;
     }
@@ -104,8 +105,7 @@ class Mage_CatalogSearch_Model_Layer extends Mage_Catalog_Model_Layer
      */
     protected function _prepareAttributeCollection($collection)
     {
-        $collection->addIsFilterableInSearchFilter()
-            ->addVisibleFilter();
+        $collection->addIsFilterableInSearchFilter();
         return $collection;
     }
 

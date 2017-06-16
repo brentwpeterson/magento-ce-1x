@@ -220,12 +220,7 @@ class Mage_Review_ProductController extends Mage_Core_Controller_Front_Action
     {
         if ($product = $this->_initProduct()) {
             Mage::register('productId', $product->getId());
-
-            $design = Mage::getSingleton('catalog/design');
-            $settings = $design->getDesignSettings($product);
-            if ($settings->getCustomDesign()) {
-                $design->applyCustomDesign($settings->getCustomDesign());
-            }
+            Mage::getModel('catalog/design')->applyDesign($product, Mage_Catalog_Model_Design::APPLY_FOR_PRODUCT);
             $this->_initProductLayout($product);
 
             // update breadcrumbs

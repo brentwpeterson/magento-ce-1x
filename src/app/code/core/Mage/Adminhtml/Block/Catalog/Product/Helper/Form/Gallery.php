@@ -87,8 +87,8 @@ class Mage_Adminhtml_Block_Catalog_Product_Helper_Form_Gallery extends Varien_Da
      */
     public function usedDefault($attribute)
     {
-        $defaultValue = $this->getDataObject()->getAttributeDefaultValue($attribute->getAttributeCode());
-        return $defaultValue === false;
+        $devaultValue = $this->getDataObject()->getAttributeDefaultValue($attribute->getAttributeCode());
+        return is_null($devaultValue);
     }
 
     /**

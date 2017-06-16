@@ -275,22 +275,12 @@ class Mage_Sales_Model_Order_Shipment extends Mage_Sales_Model_Abstract
         return $this;
     }
 
-    /**
-     * Adds comment to shipment with additional possibility to send it to customer via email
-     * and show it in customer account
-     *
-     * @param bool $notify
-     * @param bool $visibleOnFront
-     *
-     * @return Mage_Sales_Model_Order_Shipment
-     */
-    public function addComment($comment, $notify=false, $visibleOnFront=false)
+    public function addComment($comment, $notify=false)
     {
         if (!($comment instanceof Mage_Sales_Model_Order_Shipment_Comment)) {
             $comment = Mage::getModel('sales/order_shipment_comment')
                 ->setComment($comment)
-                ->setIsCustomerNotified($notify)
-                ->setIsVisibleOnFront($visibleOnFront);
+                ->setIsCustomerNotified($notify);
         }
         $comment->setShipment($this)
             ->setParentId($this->getId())
@@ -333,6 +323,11 @@ class Mage_Sales_Model_Order_Shipment extends Mage_Sales_Model_Abstract
             return $this;
         }
 
+        $currentDesign = Mage::getDesign()->setAllGetOld(array(
+            'package' => Mage::getStoreConfig('design/package/name', $this->getStoreId()),
+            'store' => $this->getStoreId()
+        ));
+
         $translate = Mage::getSingleton('core/translate');
         /* @var $translate Mage_Core_Model_Translate */
         $translate->setTranslateInline(false);
@@ -344,12 +339,6 @@ class Mage_Sales_Model_Order_Shipment extends Mage_Sales_Model_Abstract
         if (!$notifyCustomer && !$copyTo) {
             return $this;
         }
-
-        $currentDesign = Mage::getDesign()->setAllGetOld(array(
-            'package' => Mage::getStoreConfig('design/package/name', $this->getStoreId()),
-            'store' => $this->getStoreId()
-        ));
-
         $paymentBlock   = Mage::helper('payment')->getInfoBlock($order->getPayment())
             ->setIsSecureMode(true);
         $paymentBlock->getMethod()->setStore($order->getStore()->getId());
@@ -421,6 +410,10 @@ class Mage_Sales_Model_Order_Shipment extends Mage_Sales_Model_Abstract
             return $this;
         }
 
+        $currentDesign = Mage::getDesign()->setAllGetOld(array(
+            'package' => Mage::getStoreConfig('design/package/name', $this->getStoreId()),
+        ));
+
         $translate = Mage::getSingleton('core/translate');
         /* @var $translate Mage_Core_Model_Translate */
         $translate->setTranslateInline(false);
@@ -433,10 +426,6 @@ class Mage_Sales_Model_Order_Shipment extends Mage_Sales_Model_Abstract
         if (!$notifyCustomer && !$copyTo) {
             return $this;
         }
-
-        $currentDesign = Mage::getDesign()->setAllGetOld(array(
-            'package' => Mage::getStoreConfig('design/package/name', $this->getStoreId()),
-        ));
 
         $mailTemplate = Mage::getModel('core/email_template');
 

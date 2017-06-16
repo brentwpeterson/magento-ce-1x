@@ -120,11 +120,7 @@ class Mage_Shipping_Model_Carrier_Tablerate
             $method->setMethod('bestway');
             $method->setMethodTitle($this->getConfigData('name'));
 
-            if ($request->getFreeShipping() === true || ($request->getPackageQty() == $freeQty)) {
-                $shippingPrice = 0;
-            } else {
-                $shippingPrice = $this->getFinalPriceWithHandlingFee($rate['price']);
-            }
+            $shippingPrice = $this->getFinalPriceWithHandlingFee($rate['price']);
 
             $method->setPrice($shippingPrice);
             $method->setCost($rate['cost']);

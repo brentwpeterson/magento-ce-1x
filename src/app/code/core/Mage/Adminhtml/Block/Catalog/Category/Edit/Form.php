@@ -48,40 +48,34 @@ class Mage_Adminhtml_Block_Catalog_Category_Edit_Form extends Mage_Adminhtml_Blo
 
     protected function _prepareLayout()
     {
-        $category = $this->getCategory();
-        $categoryId = (int) $category->getId(); // 0 when we create category, otherwise some value for editing category
-
         $this->setChild('tabs',
             $this->getLayout()->createBlock('adminhtml/catalog_category_tabs', 'tabs')
         );
 
-        // Save button
-        if (!$category->isReadonly()) {
+        if (!$this->getCategory()->isReadonly()) {
             $this->setChild('save_button',
                 $this->getLayout()->createBlock('adminhtml/widget_button')
                     ->setData(array(
                         'label'     => Mage::helper('catalog')->__('Save Category'),
-                        'onclick'   => "categorySubmit('" . $this->getSaveUrl() . "', true)",
+                        'onclick'   => "categorySubmit('".$this->getSaveUrl()."',true)",
                         'class' => 'save'
                     ))
             );
         }
-
-        // Delete button
-        if (!in_array($categoryId, $this->getRootIds()) && $category->isDeleteable()) {
+        if (!in_array($this->getCategory()->getId(), $this->getRootIds()) &&
+            $this->getCategory()->isDeleteable()) {
             $this->setChild('delete_button',
                 $this->getLayout()->createBlock('adminhtml/widget_button')
                     ->setData(array(
                         'label'     => Mage::helper('catalog')->__('Delete Category'),
-                        'onclick'   => "categoryDelete('" . $this->getUrl('*/*/delete', array('_current' => true)) . "', true, {$categoryId})",
+                        'onclick'   => "categoryDelete('".$this->getUrl('*/*/delete', array('_current'=>true))."',true)",
                         'class' => 'delete'
                     ))
             );
         }
 
-        // Reset button
-        if (!$category->isReadonly()) {
-            $resetPath = $categoryId ? '*/*/edit' : '*/*/add';
+        if (!$this->getCategory()->isReadonly()) {
+            $resetPath = $this->getCategory()->getId() ? '*/*/edit' : '*/*/add';
             $this->setChild('reset_button',
                 $this->getLayout()->createBlock('adminhtml/widget_button')
                     ->setData(array(
@@ -184,16 +178,7 @@ class Mage_Adminhtml_Block_Catalog_Category_Edit_Form extends Mage_Adminhtml_Blo
     public function getHeader()
     {
         if ($this->hasStoreRootCategory()) {
-            if ($this->getCategoryId()) {
-                return $this->getCategoryName();
-            } else {
-                $parentId = (int) $this->getRequest()->getParam('parent');
-                if ($parentId && ($parentId != Mage_Catalog_Model_Category::TREE_ROOT_ID)) {
-                    return Mage::helper('catalog')->__('New Subcategory');
-                } else {
-                    return Mage::helper('catalog')->__('New Root Category');
-                }
-            }
+            return $this->getCategoryId() ? $this->getCategoryName() : Mage::helper('catalog')->__('New Category');
         }
         return Mage::helper('catalog')->__('Set Root Category for Store');
     }

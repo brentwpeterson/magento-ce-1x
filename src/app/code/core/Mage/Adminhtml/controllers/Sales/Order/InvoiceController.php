@@ -62,10 +62,6 @@ class Mage_Adminhtml_Sales_Order_InvoiceController extends Mage_Adminhtml_Contro
         $orderId = $this->getRequest()->getParam('order_id');
         if ($invoiceId) {
             $invoice = Mage::getModel('sales/order_invoice')->load($invoiceId);
-            if (!$invoice->getId()) {
-                $this->_getSession()->addError($this->__('The invoice no longer exists.'));
-                return false;
-            }
         } elseif ($orderId) {
             $order = Mage::getModel('sales/order')->load($orderId);
             /**
@@ -197,11 +193,6 @@ class Mage_Adminhtml_Sales_Order_InvoiceController extends Mage_Adminhtml_Contro
     {
         try {
             $invoice = $this->_initInvoice(true);
-            // Save invoice comment text in current invoice object in order to display it in corresponding view
-            $invoiceRawData = $this->getRequest()->getParam('invoice');
-            $invoiceRawCommentText = $invoiceRawData['comment_text'];
-            $invoice->setCommentText($invoiceRawCommentText);
-
             $this->loadLayout();
             $response = $this->getLayout()->getBlock('order_items')->toHtml();
         } catch (Mage_Core_Exception $e) {
@@ -242,7 +233,7 @@ class Mage_Adminhtml_Sales_Order_InvoiceController extends Mage_Adminhtml_Contro
                 }
 
                 if (!empty($data['comment_text'])) {
-                    $invoice->addComment($data['comment_text'], isset($data['comment_customer_notify']), isset($data['is_visible_on_front']));
+                    $invoice->addComment($data['comment_text'], isset($data['comment_customer_notify']));
                 }
 
                 $invoice->register();
@@ -380,7 +371,7 @@ class Mage_Adminhtml_Sales_Order_InvoiceController extends Mage_Adminhtml_Contro
                 Mage::throwException($this->__('The Comment Text field cannot be empty.'));
             }
             $invoice = $this->_initInvoice();
-            $invoice->addComment($data['comment'], isset($data['is_customer_notified']), isset($data['is_visible_on_front']));
+            $invoice->addComment($data['comment'], isset($data['is_customer_notified']));
             $invoice->sendUpdateEmail(!empty($data['is_customer_notified']), $data['comment']);
             $invoice->_hasDataChanges = true;
             $invoice->save();

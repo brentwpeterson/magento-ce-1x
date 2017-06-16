@@ -117,8 +117,9 @@ class Mage_Core_Controller_Varien_Router_Standard extends Mage_Core_Controller_V
 
         if ($path) {
             $p = explode('/', $path);
-        } else {
-            $p = explode('/', $this->_getDefaultPath());
+        }
+        else {
+            $p = explode('/', Mage::getStoreConfig('web/default/front'));
         }
 
         // get module name
@@ -245,7 +246,7 @@ class Mage_Core_Controller_Varien_Router_Standard extends Mage_Core_Controller_V
 
         // set parameters from pathinfo
         for ($i=3, $l=sizeof($p); $i<$l; $i+=2) {
-            $request->setParam($p[$i], isset($p[$i+1]) ? urldecode($p[$i+1]) : '');
+            $request->setParam($p[$i], isset($p[$i+1]) ? $p[$i+1] : '');
         }
 
         // dispatch action
@@ -253,15 +254,6 @@ class Mage_Core_Controller_Varien_Router_Standard extends Mage_Core_Controller_V
         $controllerInstance->dispatch($action);
 
         return true;
-    }
-
-    /**
-     * Get router default request path
-     * @return string
-     */
-    protected function _getDefaultPath()
-    {
-        return Mage::getStoreConfig('web/default/front');
     }
 
     /**

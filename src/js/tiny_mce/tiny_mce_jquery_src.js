@@ -5,9 +5,9 @@
 	var tinymce = {
 		majorVersion : '3',
 
-		minorVersion : '3.7',
+		minorVersion : '3.2',
 
-		releaseDate : '2010-06-10',
+		releaseDate : '2010-03-25',
 
 		_init : function() {
 			var t = this, d = document, na = navigator, ua = na.userAgent, i, nl, n, base, p, v;
@@ -25,8 +25,6 @@
 			t.isMac = ua.indexOf('Mac') != -1;
 
 			t.isAir = /adobeair/i.test(ua);
-
-			t.isIDevice = /(iPad|iPhone)/.test(ua);
 
 			// TinyMCE .NET webcontrol might be setting the values for TinyMCE
 			if (win.tinyMCEPreInit) {
@@ -1505,7 +1503,7 @@ tinymce.create('static tinymce.util.XHR', {
 				if (keep_children) {
 					while (child = node.firstChild) {
 						// IE 8 will crash if you don't remove completely empty text nodes
-						if (!tinymce.isIE || child.nodeType !== 3 || child.nodeValue)
+						if (child.nodeType !== 3 || child.nodeValue)
 							parent.insertBefore(child, node);
 						else
 							node.removeChild(child);
@@ -2151,7 +2149,7 @@ tinymce.create('static tinymce.util.XHR', {
 						// So if we replace the p elements with divs and mark them and then replace them back to paragraphs
 						// after we use innerHTML we can fix the DOM tree
 						h = h.replace(/<p ([^>]+)>|<p>/ig, '<div $1 _mce_tmp="1">');
-						h = h.replace(/<\/p>/gi, '</div>');
+						h = h.replace(/<\/p>/g, '</div>');
 
 						// Set the new HTML with DIVs
 						set();
@@ -2655,13 +2653,10 @@ tinymce.create('static tinymce.util.XHR', {
 				for (lastNodeType = node.nodeType, node = node.previousSibling, lastNode = node; node; node = node.previousSibling) {
 					nodeType = node.nodeType;
 
-					// Normalize text nodes
-					if (normalized && nodeType == 3) {
-						if (nodeType == lastNodeType || !node.nodeValue.length)
-							continue;
-					}
+					// Handle normalization of text nodes
+					if (!normalized || nodeType != 3 || (lastNodeType != nodeType && node.nodeValue.length))
+						idx++;
 
-					idx++;
 					lastNodeType = nodeType;
 				}
 			}
@@ -3501,9 +3496,35 @@ tinymce.create('static tinymce.util.XHR', {
 	function Selection(selection) {
 		var t = this, invisibleChar = '\uFEFF', range, lastIERng, dom = selection.dom, TRUE = true, FALSE = false;
 
+		// Compares two IE specific ranges to see if they are different
+		// this method is useful when invalidating the cached selection range
+		function compareRanges(rng1, rng2) {
+			if (rng1 && rng2) {
+				// Both are control ranges and the selected element matches
+				if (rng1.item && rng2.item && rng1.item(0) === rng2.item(0))
+					return TRUE;
+
+				// Both are text ranges and the range matches
+				if (rng1.isEqual && rng2.isEqual && rng2.isEqual(rng1)) {
+					// IE will say that the range is equal then produce an invalid argument exception
+					// if you perform specific operations in a keyup event. For example Ctrl+Del.
+					// This hack will invalidate the range cache if the exception occurs
+					try {
+						// Try accessing nextSibling will producer an invalid argument some times
+						range.startContainer.nextSibling;
+						return TRUE;
+					} catch (ex) {
+						// Ignore
+					}
+				}
+			}
+
+			return FALSE;
+		};
+
 		// Returns a W3C DOM compatible range object by using the IE Range API
 		function getRange() {
-			var ieRange = selection.getRng(), domRange = dom.createRng(), element, collapsed;
+			var ieRange = selection.getRng(), domRange = dom.createRng(), ieRange2, element, collapsed, isMerged;
 
 			// If selection is outside the current document just return an empty range
 			element = ieRange.item ? ieRange.item(0) : ieRange.parentElement();
@@ -3518,96 +3539,84 @@ tinymce.create('static tinymce.util.XHR', {
 				return domRange;
 			}
 
+			// Duplicare IE selection range and check if the range is collapsed
+			ieRange2 = ieRange.duplicate();
 			collapsed = selection.isCollapsed();
 
-			function findEndPoint(start) {
-				var marker, container, offset, nodes, startIndex = 0, endIndex, index, parent, checkRng, position;
+			// Insert invisible start marker
+			ieRange.collapse();
+			ieRange.pasteHTML('<span id="_mce_start" style="display:none;line-height:0">' + invisibleChar + '</span>');
 
-				// Setup temp range and collapse it
-				checkRng = ieRange.duplicate();
-				checkRng.collapse(start);
+			// Insert invisible end marker
+			if (!collapsed) {
+				ieRange2.collapse(FALSE);
+				ieRange2.pasteHTML('<span id="_mce_end" style="display:none;line-height:0">' + invisibleChar + '</span>');
+			}
 
-				// Create marker and insert it at the end of the endpoints parent
-				marker = dom.create('a');
-				parent = checkRng.parentElement();
+			// Sets the end point of the range by looking for the marker
+			// This method also merges the text nodes it splits so that
+			// the DOM doesn't get fragmented.
+			function setEndPoint(start) {
+				var container, offset, marker, sibling;
 
-				// If parent doesn't have any children then set the container to that parent and the index to 0
-				if (!parent.hasChildNodes()) {
-					domRange[start ? 'setStart' : 'setEnd'](parent, 0);
-					return;
-				}
+				// Look for endpoint marker
+				marker = dom.get('_mce_' + (start ? 'start' : 'end'));
+				sibling = marker.previousSibling;
 
-				parent.appendChild(marker);
-				checkRng.moveToElementText(marker);
-				position = ieRange.compareEndPoints(start ? 'StartToStart' : 'EndToEnd', checkRng);
-				if (position > 0) {
-					// The position is after the end of the parent element.
-					// This is the case where IE puts the caret to the left edge of a table.
-					domRange[start ? 'setStartAfter' : 'setEndAfter'](parent);
+				// Is marker after a text node
+				if (sibling && sibling.nodeType == 3) {
+					// Get container node and calc offset
+					container = sibling;
+					offset = container.nodeValue.length;
 					dom.remove(marker);
-					return;
-				}
 
-				// Setup node list and endIndex
-				nodes = tinymce.grep(parent.childNodes);
-				endIndex = nodes.length - 1;
-				// Perform a binary search for the position
-				while (startIndex <= endIndex) {
-					index = Math.floor((startIndex + endIndex) / 2);
-
-					// Insert marker and check it's position relative to the selection
-					parent.insertBefore(marker, nodes[index]);
-					checkRng.moveToElementText(marker);
-					position = ieRange.compareEndPoints(start ? 'StartToStart' : 'EndToEnd', checkRng);
-					if (position > 0) {
-						// Marker is to the right
-						startIndex = index + 1;
-					} else if (position < 0) {
-						// Marker is to the left
-						endIndex = index - 1;
-					} else {
-						// Maker is where we are
-						found = true;
-						break;
+					// Merge text nodes to reduce DOM fragmentation
+					sibling = container.nextSibling;
+					if (sibling && sibling.nodeType == 3) {
+						isMerged = TRUE;
+						container.appendData(sibling.nodeValue);
+						dom.remove(sibling);
 					}
-				}
-
-				// Setup container
-				container = position > 0 || index == 0 ? marker.nextSibling : marker.previousSibling;
-
-				// Handle element selection
-				if (container.nodeType == 1) {
-					dom.remove(marker);
-
-					// Find offset and container
-					offset = dom.nodeIndex(container);
-					container = container.parentNode;
-
-					// Move the offset if we are setting the end or the position is after an element
-					if (!start || index > 0)
-						offset++;
 				} else {
-					// Calculate offset within text node
-					if (position > 0 || index == 0) {
-						checkRng.setEndPoint(start ? 'StartToStart' : 'EndToEnd', ieRange);
-						offset = checkRng.text.length;
+					sibling = marker.nextSibling;
+
+					// Is marker before a text node
+					if (sibling && sibling.nodeType == 3) {
+						container = sibling;
+						offset = 0;
 					} else {
-						checkRng.setEndPoint(start ? 'StartToStart' : 'EndToEnd', ieRange);
-						offset = container.nodeValue.length - checkRng.text.length;
+						// Is marker before an element
+						if (sibling)
+							offset = dom.nodeIndex(sibling) - 1;
+						else
+							offset = dom.nodeIndex(marker);
+
+						container = marker.parentNode;
 					}
 
 					dom.remove(marker);
 				}
 
-				domRange[start ? 'setStart' : 'setEnd'](container, offset);
+				// Set start of range
+				if (start)
+					domRange.setStart(container, offset);
+
+				// Set end of range or automatically if it's collapsed to increase performance
+				if (!start || collapsed)
+					domRange.setEnd(container, offset);
 			};
 
-			// Find start point
-			findEndPoint(true);
+			// Set start of range
+			setEndPoint(TRUE);
 
-			// Find end point if needed
+			// Set end of range if needed
 			if (!collapsed)
-				findEndPoint();
+				setEndPoint(FALSE);
+
+			// Restore selection if the range contents was merged
+			// since the selection was then moved since the text nodes got changed
+			if (isMerged)
+				t.addRange(domRange);
 
 			return domRange;
 		};
@@ -3711,10 +3720,7 @@ tinymce.create('static tinymce.util.XHR', {
 				// Select marker the caret to offset position
 				ieRng.moveToElementText(marker);
 				marker.parentNode.removeChild(marker);
-
-				// Move if we need to, moving it 0 characters actually moves it!
-				if (so > 0)
-					ieRng.move('character', so);
+				ieRng.move('character', so);
 			} else {
 				ieRng.moveToElementText(sc);
 
@@ -3724,17 +3730,9 @@ tinymce.create('static tinymce.util.XHR', {
 
 			// If same text container then we can do a more simple move
 			if (sc == ec && sc.nodeType == 3) {
-				try {
-					ieRng.moveEnd('character', eo - so);
-					ieRng.select();
-					ieRng.scrollIntoView();
-				} catch (ex) {
-					// Some times a Runtime error of the 800a025e type gets thrown
-					// especially when the caret is placed before a table.
-					// This is a somewhat strange location for the caret.
-					// TODO: Find a better solution for this would possible require a rewrite of the setRng method
-				}
-
+				ieRng.moveEnd('character', eo - so);
+				ieRng.select();
+				ieRng.scrollIntoView();
 				return;
 			}
 
@@ -3761,21 +3759,11 @@ tinymce.create('static tinymce.util.XHR', {
 
 		this.getRangeAt = function() {
 			// Setup new range if the cache is empty
-			if (!range || !tinymce.dom.RangeUtils.compareRanges(lastIERng, selection.getRng())) {
+			if (!range || !compareRanges(lastIERng, selection.getRng())) {
 				range = getRange();
 
 				// Store away text range for next call
 				lastIERng = selection.getRng();
-			}
-
-			// IE will say that the range is equal then produce an invalid argument exception
-			// if you perform specific operations in a keyup event. For example Ctrl+Del.
-			// This hack will invalidate the range cache if the exception occurs
-			try {
-				range.startContainer.nextSibling;
-			} catch (ex) {
-				range = getRange();
-				lastIERng = null;
 			}
 
 			// Return cached range
@@ -4346,21 +4334,17 @@ tinymce.create('static tinymce.util.XHR', {
 				h += '<span id="__caret">_</span>';
 
 				// Delete and insert new node
-				
-				if (r.startContainer == d && r.endContainer ==  d) {
+				if (r.startContainer == d && r.endContainer == d) {
 					// WebKit will fail if the body is empty since the range is then invalid and it can't insert contents
 					d.body.innerHTML = h;
 				} else {
 					r.deleteContents();
-					if (d.body.childNodes.length == 0) {
-						d.body.innerHTML = h;
-					} else {
-						r.insertNode(r.createContextualFragment(h));
-					}
+					r.insertNode(t.getRng().createContextualFragment(h));
 				}
 
 				// Move to caret marker
 				c = t.dom.get('__caret');
+
 				// Make sure we wrap it compleatly, Opera fails with a simple select call
 				r = d.createRange();
 				r.setStartBefore(c);
@@ -4384,43 +4368,30 @@ tinymce.create('static tinymce.util.XHR', {
 		},
 
 		getStart : function() {
-			var rng = this.getRng(), startElement, parentElement, checkRng, node;
+			var t = this, r = t.getRng(), e;
 
-			if (rng.duplicate || rng.item) {
-				// Control selection, return first item
-				if (rng.item)
-					return rng.item(0);
+			if (r.duplicate || r.item) {
+				if (r.item)
+					return r.item(0);
 
-				// Get start element
-				checkRng = rng.duplicate();
-				checkRng.collapse(1);
-				startElement = checkRng.parentElement();
+				r = r.duplicate();
+				r.collapse(1);
+				e = r.parentElement();
 
-				// Check if range parent is inside the start element, then return the inner parent element
-				// This will fix issues when a single element is selected, IE would otherwise return the wrong start element
-				parentElement = node = rng.parentElement();
-				while (node = node.parentNode) {
-					if (node == startElement) {
-						startElement = parentElement;
-						break;
-					}
-				}
+				if (e && e.nodeName == 'BODY')
+					return e.firstChild || e;
 
-				// If start element is body element try to move to the first child if it exists
-				if (startElement && startElement.nodeName == 'BODY')
-					return startElement.firstChild || startElement;
-
-				return startElement;
+				return e;
 			} else {
-				startElement = rng.startContainer;
+				e = r.startContainer;
 
-				if (startElement.nodeType == 1 && startElement.hasChildNodes())
-					startElement = startElement.childNodes[Math.min(startElement.childNodes.length - 1, rng.startOffset)];
+				if (e.nodeType == 1 && e.hasChildNodes())
+					e = e.childNodes[Math.min(e.childNodes.length - 1, r.startOffset)];
 
-				if (startElement && startElement.nodeType == 3)
-					return startElement.parentNode;
+				if (e && e.nodeType == 3)
+					return e.parentNode;
 
-				return startElement;
+				return e;
 			}
 		},
 
@@ -4484,10 +4455,10 @@ tinymce.create('static tinymce.util.XHR', {
 							point.push(offset);
 						} else {
 							childNodes = container.childNodes;
-
-							if (offset >= childNodes.length && childNodes.length) {
+							
+							if (offset >= childNodes.length) {
 								after = 1;
-								offset = Math.max(0, childNodes.length - 1);
+								offset = childNodes.length - 1;
 							}
 
 							point.push(t.dom.nodeIndex(childNodes[offset], normalized) + after);
@@ -4566,7 +4537,7 @@ tinymce.create('static tinymce.util.XHR', {
 		},
 
 		moveToBookmark : function(bookmark) {
-			var t = this, dom = t.dom, marker1, marker2, rng, root, startContainer, endContainer, startOffset, endOffset;
+			var t = this, dom = t.dom, marker1, marker2, rng, root;
 
 			// Clear selection cache
 			if (t.tridentSel)
@@ -4578,16 +4549,12 @@ tinymce.create('static tinymce.util.XHR', {
 					root = dom.getRoot();
 
 					function setEndPoint(start) {
-						var point = bookmark[start ? 'start' : 'end'], i, node, offset, children;
+						var point = bookmark[start ? 'start' : 'end'], i, node, offset;
 
 						if (point) {
 							// Find container node
-							for (node = root, i = point.length - 1; i >= 1; i--) {
-								children = node.childNodes;
-
-								if (children.length)
-									node = children[point[i]];
-							}
+							for (node = root, i = point.length - 1; i >= 1; i--)
+								node = node.childNodes[point[i]];
 
 							// Set offset within container node
 							if (start)
@@ -4602,6 +4569,8 @@ tinymce.create('static tinymce.util.XHR', {
 
 					t.setRng(rng);
 				} else if (bookmark.id) {
+					rng = dom.createRng();
+
 					function restoreEndPoint(suffix) {
 						var marker = dom.get(bookmark.id + '_' + suffix), node, idx, next, prev, keep = bookmark.keep;
 
@@ -4612,22 +4581,21 @@ tinymce.create('static tinymce.util.XHR', {
 								if (!keep) {
 									idx = dom.nodeIndex(marker);
 								} else {
-									node = marker.firstChild;
+									node = marker;
 									idx = 1;
 								}
 
-								startContainer = endContainer = node;
-								startOffset = endOffset = idx;
+								rng.setStart(node, idx);
+								rng.setEnd(node, idx);
 							} else {
 								if (!keep) {
 									idx = dom.nodeIndex(marker);
 								} else {
-									node = marker.firstChild;
+									node = marker;
 									idx = 1;
 								}
 
-								endContainer = node;
-								endOffset = idx;
+								rng.setEnd(node, idx);
 							}
 
 							if (!keep) {
@@ -4652,33 +4620,19 @@ tinymce.create('static tinymce.util.XHR', {
 									dom.remove(next);
 
 									if (suffix == 'start') {
-										startContainer = endContainer = prev;
-										startOffset = endOffset = idx;
-									} else {
-										endContainer = prev;
-										endOffset = idx;
-									}
+										rng.setStart(prev, idx);
+										rng.setEnd(prev, idx);
+									} else
+										rng.setEnd(prev, idx);
 								}
 							}
 						}
-					};
-
-					function addBogus(node) {
-						// Adds a bogus BR element for empty block elements
-						// on non IE browsers just to have a place to put the caret
-						if (!isIE && dom.isBlock(node) && !node.innerHTML)
-							node.innerHTML = '<br _mce_bogus="1" />';
-
-						return node;
 					};
 
 					// Restore start/end points
 					restoreEndPoint('start');
 					restoreEndPoint('end');
 
-					rng = dom.createRng();
-					rng.setStart(addBogus(startContainer), startOffset);
-					rng.setEnd(addBogus(endContainer), endOffset);
 					t.setRng(rng);
 				} else if (bookmark.name) {
 					t.select(dom.select(bookmark.name)[bookmark.index]);
@@ -4783,30 +4737,18 @@ tinymce.create('static tinymce.util.XHR', {
 			if (!r)
 				r = t.win.document.createRange ? t.win.document.createRange() : t.win.document.body.createTextRange();
 
-			if (t.selectedRange && t.explicitRange) {
-				if (r.compareBoundaryPoints(r.START_TO_START, t.selectedRange) === 0 && r.compareBoundaryPoints(r.END_TO_END, t.selectedRange) === 0) {
-					// Safari, Opera and Chrome only ever select text which causes the range to change.
-					// This lets us use the originally set range if the selection hasn't been changed by the user.
-					r = t.explicitRange;
-				} else {
-					t.selectedRange = null;
-					t.explicitRange = null;
-				}
-			}
 			return r;
 		},
 
 		setRng : function(r) {
 			var s, t = this;
-			
+
 			if (!t.tridentSel) {
 				s = t.getSel();
 
 				if (s) {
-					t.explicitRange = r;
 					s.removeAllRanges();
 					s.addRange(r);
-					t.selectedRange = s.getRangeAt(0);
 				}
 			} else {
 				// Is W3C Range
@@ -6536,26 +6478,6 @@ tinymce.dom.TreeWalker = function(start_node, root_node) {
 		};
 */
 	};
-
-	tinymce.dom.RangeUtils.compareRanges = function(rng1, rng2) {
-		if (rng1 && rng2) {
-			// Compare native IE ranges
-			if (rng1.item || rng1.duplicate) {
-				// Both are control ranges and the selected element matches
-				if (rng1.item && rng2.item && rng1.item(0) === rng2.item(0))
-					return true;
-
-				// Both are text ranges and the range matches
-				if (rng1.isEqual && rng2.isEqual && rng2.isEqual(rng1))
-					return true;
-			} else {
-				// Compare w3c ranges
-				return rng1.startContainer == rng2.startContainer && rng1.startOffset == rng2.startOffset;
-			}
-		}
-
-		return false;
-	};
 })(tinymce);
 
 (function(tinymce) {
@@ -7393,7 +7315,7 @@ tinymce.create('tinymce.ui.Separator:tinymce.ui.Control', {
 			var t = this, cp = t.classPrefix;
 
 			Event.add(t.id, 'click', t.showMenu, t);
-			Event.add(t.id + '_text', 'focus', function() {
+			Event.add(t.id + '_text', 'focus', function(e) {
 				if (!t._focused) {
 					t.keyDownHandler = Event.add(t.id + '_text', 'keydown', function(e) {
 						var idx = -1, v, kc = e.keyCode;
@@ -8508,12 +8430,6 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 			if (!t.getElement())
 				return;
 
-			// Is a iPad/iPhone, then skip initialization. We need to sniff here since the
-			// browser says it has contentEditable support but there is no visible caret
-			// We will remove this check ones Apple implements full contentEditable support
-			if (tinymce.isIDevice)
-				return;
-
 			// Add hidden input for non input elements inside form elements
 			if (!/TEXTAREA|INPUT/i.test(t.getElement().nodeName) && s.hidden_input && DOM.getParent(id, 'form'))
 				DOM.insertAfter(DOM.create('input', {type : 'hidden', name : id}), id);
@@ -8879,7 +8795,6 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				hilitecolor : {inline : 'span', styles : {backgroundColor : '%value'}},
 				fontname : {inline : 'span', styles : {fontFamily : '%value'}},
 				fontsize : {inline : 'span', styles : {fontSize : '%value'}},
-				fontsize_class : {inline : 'span', attributes : {'class' : '%value'}},
 				blockquote : {block : 'blockquote', wrapper : 1, remove : 'all'},
 
 				removeformat : [
@@ -9158,27 +9073,12 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 
 
 		focus : function(sf) {
-			var oed, t = this, ce = t.settings.content_editable, ieRng, controlElm, doc = t.getDoc();
+			var oed, t = this, ce = t.settings.content_editable;
 
 			if (!sf) {
-				// Get selected control element
-				ieRng = t.selection.getRng();
-				if (ieRng.item) {
-					controlElm = ieRng.item(0);
-				}
-
 				// Is not content editable
 				if (!ce)
 					t.getWin().focus();
-
-				// Restore selected control element
-				// This is needed when for example an image is selected within a
-				// layer a call to focus will then remove the control selection
-				if (controlElm && controlElm.ownerDocument == doc) {
-					ieRng = doc.body.createControlRange();
-					ieRng.addElement(controlElm);
-					ieRng.select();
-				}
 
 			}
 
@@ -9945,7 +9845,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 
 			// Add node change handlers
 			t.onMouseUp.add(t.nodeChanged);
-			//t.onClick.add(t.nodeChanged);
+			t.onClick.add(t.nodeChanged);
 			t.onKeyUp.add(function(ed, e) {
 				var c = e.keyCode;
 
@@ -9966,9 +9866,11 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				}
 
 				// Add default shortcuts for gecko
-				t.addShortcut('ctrl+b', t.getLang('bold_desc'), 'Bold');
-				t.addShortcut('ctrl+i', t.getLang('italic_desc'), 'Italic');
-				t.addShortcut('ctrl+u', t.getLang('underline_desc'), 'Underline');
+				if (isGecko) {
+					t.addShortcut('ctrl+b', t.getLang('bold_desc'), 'Bold');
+					t.addShortcut('ctrl+i', t.getLang('italic_desc'), 'Italic');
+					t.addShortcut('ctrl+u', t.getLang('underline_desc'), 'Underline');
+				}
 
 				// BlockFormat shortcuts keys
 				for (i=1; i<=6; i++)
@@ -10119,55 +10021,6 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				});
 
 				t.onKeyDown.add(function(ed, e) {
-					var rng, tmpRng, parent, offset;
-
-					// IE has a really odd bug where the DOM might include an node that doesn't have
-					// a proper structure. If you try to access nodeValue it would throw an illegal value exception.
-					// This seems to only happen when you delete contents and it seems to be avoidable if you refresh the element
-					// after you delete contents from it. See: #3008923
-					if (isIE && e.keyCode == 46) {
-						rng = t.selection.getRng();
-
-						if (rng.parentElement) {
-							parent = rng.parentElement();
-
-							// Get the current caret position within the element
-							tmpRng = rng.duplicate();
-							tmpRng.moveToElementText(parent);
-							tmpRng.setEndPoint('EndToEnd', rng);
-							offset = tmpRng.text.length;
-
-							// Select next word when ctrl key is used in combo with delete
-							if (e.ctrlKey) {
-								rng.moveEnd('word', 1);
-								rng.select();
-							}
-
-							// Delete contents
-							t.selection.getSel().clear();
-
-							// Check if we are within the same parent
-							if (rng.parentElement() == parent) {
-								try {
-									// Update the HTML and hopefully it will remove the artifacts
-									parent.innerHTML = parent.innerHTML;
-								} catch (ex) {
-									// And since it's IE it can sometimes produce an unknown runtime error
-								}
-
-								// Restore the caret position
-								tmpRng.moveToElementText(parent);
-								tmpRng.collapse();
-								tmpRng.move('character', offset);
-								tmpRng.select();
-							}
-
-							// Block the default delete behavior since it might be broken
-							e.preventDefault();
-							return;
-						}
-					}
-
 					// Is caracter positon keys
 					if ((e.keyCode >= 33 && e.keyCode <= 36) || (e.keyCode >= 37 && e.keyCode <= 40) || e.keyCode == 13 || e.keyCode == 45) {
 						if (t.undoManager.typing)
@@ -10364,7 +10217,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				}
 
 				// Present alert message about clipboard access not being available
-				if (failed || !doc.queryCommandSupported(command)) {
+				if (failed || !doc.queryCommandEnabled(command)) {
 					if (tinymce.isGecko) {
 						editor.windowManager.confirm(editor.getLang('clipboard_msg'), function(state) {
 							if (state)
@@ -10459,18 +10312,16 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 			},
 
 			mceCleanup : function() {
-				var bookmark = selection.getBookmark();
-
+				storeSelection();
 				editor.setContent(editor.getContent({cleanup : TRUE}), {cleanup : TRUE});
-
-				selection.moveToBookmark(bookmark);
+				restoreSelection();
 			},
 
 			mceRemoveNode : function(command, ui, value) {
 				var node = value || selection.getNode();
 
 				// Make sure that the body node isn't removed
-				if (node != editor.getBody()) {
+				if (node != ed.getBody()) {
 					storeSelection();
 					editor.dom.remove(node, TRUE);
 					restoreSelection();
@@ -10575,16 +10426,8 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 					if (value.href)
 						dom.setAttribs(link, value);
 					else
-						editor.dom.remove(link, TRUE);
+						ed.dom.remove(link, TRUE);
 				}
-			},
-			
-			selectAll : function() {
-				var root = dom.getRoot();
-				var rng = dom.createRng();
-				rng.setStart(root, 0);
-				rng.setEnd(root, root.childNodes.length);
-				editor.selection.setRng(rng);
 			}
 		});
 
@@ -10776,27 +10619,6 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 		TRUE = true,
 		FALSE = false;
 
-	function cloneFormats(node) {
-		var clone, temp, inner;
-
-		do {
-			if (/^(SPAN|STRONG|B|EM|I|FONT|STRIKE|U)$/.test(node.nodeName)) {
-				if (clone) {
-					temp = node.cloneNode(false);
-					temp.appendChild(clone);
-					clone = temp;
-				} else {
-					clone = inner = node.cloneNode(false);
-				}
-
-				clone.removeAttribute('id');
-			}
-		} while (node = node.parentNode);
-
-		if (clone)
-			return {wrapper : clone, inner : inner};
-	};
-
 	// Checks if the selection/caret is at the end of the specified block element
 	function isAtEnd(rng, par) {
 		var rng2 = par.ownerDocument.createRange();
@@ -10905,54 +10727,11 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				}
 			}
 
-			if (s.force_p_newlines) {
-				if (!isIE) {
-					ed.onKeyPress.add(function(ed, e) {
-						if (e.keyCode == 13 && !e.shiftKey && !t.insertPara(e))
-							Event.cancel(e);
-					});
-				} else {
-					// Ungly hack to for IE to preserve the formatting when you press
-					// enter at the end of a block element with formatted contents
-					// This logic overrides the browsers default logic with
-					// custom logic that enables us to control the output
-					tinymce.addUnload(function() {
-						t._previousFormats = 0; // Fix IE leak
-					});
-
-					ed.onKeyPress.add(function(ed, e) {
-						t._previousFormats = 0;
-
-						// Clone the current formats, this will later be applied to the new block contents
-						if (e.keyCode == 13 && !e.shiftKey && ed.selection.isCollapsed() && s.keep_styles)
-							t._previousFormats = cloneFormats(ed.selection.getStart());
-					});
-
-					ed.onKeyUp.add(function(ed, e) {
-						// Let IE break the element and the wrap the new caret location in the previous formats
-						if (e.keyCode == 13 && !e.shiftKey) {
-							var parent = ed.selection.getStart(), fmt = t._previousFormats;
-
-							// Parent is an empty block
-							if (!parent.hasChildNodes()) {
-								parent = dom.getParent(parent, dom.isBlock);
-
-								if (parent) {
-									parent.innerHTML = '';
-	
-									if (t._previousFormats) {
-										parent.appendChild(fmt.wrapper);
-										fmt.inner.innerHTML = '\uFEFF';
-									} else
-										parent.innerHTML = '\uFEFF';
-
-									selection.select(parent, 1);
-									ed.getDoc().execCommand('Delete', false, null);
-								}
-							}
-						}
-					});
-				}
+			if (!isIE && s.force_p_newlines) {
+				ed.onKeyPress.add(function(ed, e) {
+					if (e.keyCode == 13 && !e.shiftKey && !t.insertPara(e))
+						Event.cancel(e);
+				});
 
 				if (isGecko) {
 					ed.onKeyDown.add(function(ed, e) {
@@ -10993,7 +10772,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				};
 
 				ed.onKeyPress.add(function(ed, e) {
-					if (e.keyCode == 13 && (e.shiftKey || (s.force_br_newlines && !dom.getParent(selection.getNode(), 'h1,h2,h3,h4,h5,h6,ol,ul')))) {
+					if (e.keyCode == 13 && (e.shiftKey || s.force_br_newlines)) {
 						insertBr(ed);
 						Event.cancel(e);
 					}
@@ -11103,13 +10882,6 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 										}
 									}
 								} else {
-									// Force control range into text range
-									if (r.item) {
-										tr = d.body.createTextRange();
-										tr.moveToElementText(r.item(0));
-										r = tr;
-									}
-
 									tr = d.body.createTextRange();
 									tr.moveToElementText(b);
 									tr.collapse(1);
@@ -11454,22 +11226,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 		},
 
 		backspaceDelete : function(e, bs) {
-			var t = this, ed = t.editor, b = ed.getBody(), dom = ed.dom, n, se = ed.selection, r = se.getRng(), sc = r.startContainer, n, w, tn, walker;
-
-			// Delete when caret is behind a element doesn't work correctly on Gecko see #3011651
-			if (!bs && r.collapsed && sc.nodeType == 1 && r.startOffset == sc.childNodes.length) {
-				walker = new tinymce.dom.TreeWalker(sc.lastChild, sc);
-
-				// Walk the dom backwards until we find a text node
-				for (n = sc.lastChild; n; n = walker.prev()) {
-					if (n.nodeType == 3) {
-						r.setStart(n, n.nodeValue.length);
-						r.collapse(true);
-						se.setRng(r);
-						return;
-					}
-				}
-			}
+			var t = this, ed = t.editor, b = ed.getBody(), dom = ed.dom, n, se = ed.selection, r = se.getRng(), sc = r.startContainer, n, w, tn;
 
 			// The caret sometimes gets stuck in Gecko if you delete empty paragraphs
 			// This workaround removes the element by hand and moves the caret to the previous element
@@ -11500,6 +11257,37 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 					}
 				}
 			}
+
+			// Gecko generates BR elements here and there, we don't like those so lets remove them
+			function handler(e) {
+				var pr;
+
+				e = e.target;
+
+				// A new BR was created in a block element, remove it
+				if (e && e.parentNode && e.nodeName == 'BR' && (n = t.getParentBlock(e))) {
+					pr = e.previousSibling;
+
+					Event.remove(b, 'DOMNodeInserted', handler);
+
+					// Is there whitespace at the end of the node before then we might need the pesky BR
+					// to place the caret at a correct location see bug: #2013943
+					if (pr && pr.nodeType == 3 && /\s+$/.test(pr.nodeValue))
+						return;
+
+					// Only remove BR elements that got inserted in the middle of the text
+					if (e.previousSibling || e.nextSibling)
+						ed.dom.remove(e);
+				}
+			};
+
+			// Listen for new nodes
+			Event._add(b, 'DOMNodeInserted', handler);
+
+			// Remove listener
+			window.setTimeout(function() {
+				Event._remove(b, 'DOMNodeInserted', handler);
+			}, 1);
 		}
 	});
 })(tinymce);
@@ -12115,16 +11903,11 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 
 				// Move startContainer/startOffset in to a suitable node
 				if (container.nodeType == 1 || container.nodeValue === "") {
-					container = container.nodeType == 1 ? container.childNodes[offset] : container;
-
-					// Might fail if the offset is behind the last element in it's container
-					if (container) {
-						walker = new TreeWalker(container, container.parentNode);
-						for (node = walker.current(); node; node = walker.next()) {
-							if (node.nodeType == 3 && !isWhiteSpaceNode(node)) {
-								rng.setStart(node, 0);
-								break;
-							}
+					walker = new TreeWalker(container.childNodes[offset]);
+					for (node = walker.current(); node; node = walker.next()) {
+						if (node.nodeType == 3 && !isBlock(node.parentNode) && !isWhiteSpaceNode(node)) {
+							rng.setStart(node, 0);
+							break;
 						}
 					}
 				}
@@ -12203,7 +11986,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 								}
 							});
 
-							// Continue processing if a selector match wasn't found and a inline element is defined
+							// Contine processing if a selector match wasn't found and a inline element is defined
 							if (!format.inline || found) {
 								currentWrapElm = 0;
 								return;
@@ -12296,23 +12079,14 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 							});
 						});
 
-						// Remove child if direct parent is of same type
-						if (matchNode(node.parentNode, name, vars)) {
-							dom.remove(node, 1);
-							node = 0;
-							return TRUE;
-						}
-
 						// Look for parent with similar style format
-						if (format.merge_with_parents) {
-							dom.getParent(node.parentNode, function(parent) {
-								if (matchNode(parent, name, vars)) {
-									dom.remove(node, 1);
-									node = 0;
-									return TRUE;
-								}
-							});
-						}
+						dom.getParent(node.parentNode, function(parent) {
+							if (matchNode(parent, name, vars)) {
+								dom.remove(node, 1);
+								node = 0;
+								return TRUE;
+							}
+						});
 
 						// Merge next and previous siblings if they are similar <b>text</b><b>text</b> becomes <b>texttext</b>
 						if (node) {
@@ -12330,7 +12104,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 					rng.setStartBefore(node);
 					rng.setEndAfter(node);
 
-					applyRngStyle(expandRng(rng, formatList));
+					applyRngStyle(rng);
 				} else {
 					if (!selection.isCollapsed() || !format.inline) {
 						// Apply formatting to selection
@@ -12439,13 +12213,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				var node = dom.get(start ? '_start' : '_end'),
 					out = node[start ? 'firstChild' : 'lastChild'];
 
-				// If the end is placed within the start the result will be removed
-				// So this checks if the out node is a bookmark node if it is it
-				// checks for another more suitable node
-				if (isBookmarkNode(out))
-					out = out[start ? 'firstChild' : 'lastChild'];
-
-				dom.remove(node, true);
+				dom.remove(node, 1);
 
 				return out;
 			};
@@ -12514,7 +12282,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 				apply(name, vars, node);
 		};
 
-		function matchNode(node, name, vars, similar) {
+		function matchNode(node, name, vars) {
 			var formatList = get(name), format, i, classes;
 
 			function matchItems(node, format, item_name) {
@@ -12531,10 +12299,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 								else
 									value = getStyle(node, key);
 
-								if (similar && !value && !format.exact)
-									return;
-
-								if ((!similar || format.exact) && !isEq(value, replaceVars(items[key], vars)))
+								if (!isEq(value, replaceVars(items[key], vars)))
 									return;
 							}
 						}
@@ -12577,7 +12342,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 			function matchParents(node) {
 				// Find first node with similar format settings
 				node = dom.getParent(node, function(node) {
-					return !!matchNode(node, name, vars, true);
+					return !!matchNode(node, name, vars);
 				});
 
 				// Do an exact check on the similar format element
@@ -12756,7 +12521,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 		};
 
 		function isWhiteSpaceNode(node) {
-			return node && node.nodeType === 3 && /^([\s\r\n]+|)$/.test(node.nodeValue);
+			return node && node.nodeType === 3 && /^\s*$/.test(node.nodeValue);
 		};
 
 		function wrap(node, name, attrs) {
@@ -13199,7 +12964,7 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 		};
 
 		function isTextBlock(name) {
-			return /^(h[1-6]|p|div|pre|address|dl|dt|dd)$/.test(name);
+			return /^(h[1-6]|p|div|pre|address)$/.test(name);
 		};
 
 		function getContainer(rng, start) {
@@ -13265,7 +13030,6 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 			// Pending apply or remove formats
 			if (hasPending()) {
 				ed.getDoc().execCommand('FontName', false, 'mceinline');
-				pendingFormats.lastRng = selection.getRng();
 
 				// IE will convert the current word
 				each(dom.select('font,span'), function(node) {
@@ -13285,25 +13049,21 @@ tinymce.create('tinymce.ui.Toolbar:tinymce.ui.Container', {
 
 					each('onKeyDown,onKeyUp,onKeyPress,onMouseUp'.split(','), function(event) {
 						ed[event].addToTop(function(ed, e) {
-							// Do we have pending formats and is the selection moved has moved
-							if (hasPending() && !tinymce.dom.RangeUtils.compareRanges(pendingFormats.lastRng, selection.getRng())) {
+							if (hasPending()) {
 								each(dom.select('font,span'), function(node) {
-									var textNode, rng;
+									var bookmark, textNode, rng;
 
 									// Look for marker
 									if (isCaretNode(node)) {
 										textNode = node.firstChild;
 
-										if (textNode) {
-											perform(node);
+										perform(node);
 
-											rng = dom.createRng();
-											rng.setStart(textNode, textNode.nodeValue.length);
-											rng.setEnd(textNode, textNode.nodeValue.length);
-											selection.setRng(rng);
-											ed.nodeChanged();
-										} else
-											dom.remove(node);
+										rng = dom.createRng();
+										rng.setStart(textNode, textNode.nodeValue.length);
+										rng.setEnd(textNode, textNode.nodeValue.length);
+										selection.setRng(rng);
+										ed.nodeChanged();
 									}
 								});
 

@@ -30,21 +30,12 @@ class Mage_Core_Controller_Varien_Router_Admin extends Mage_Core_Controller_Vari
     public function fetchDefault()
     {
         // set defaults
-        $d = explode('/', $this->_getDefaultPath());
+        $d = explode('/', (string)Mage::getConfig()->getNode('default/web/default/admin'));
         $this->getFront()->setDefault(array(
             'module'     => !empty($d[0]) ? $d[0] : '',
             'controller' => !empty($d[1]) ? $d[1] : 'index',
             'action'     => !empty($d[2]) ? $d[2] : 'index'
         ));
-    }
-
-    /**
-     * Get router default request path
-     * @return string
-     */
-    protected function _getDefaultPath()
-    {
-        return (string)Mage::getConfig()->getNode('default/web/default/admin');
     }
 
     /**

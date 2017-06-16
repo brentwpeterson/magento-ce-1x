@@ -14,9 +14,9 @@
  *
  * @category   Zend
  * @package    Zend_Pdf
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: Stream.php 20096 2010-01-06 02:05:09Z bkarwin $
+ * @version    $Id: Stream.php 18993 2009-11-15 17:09:16Z alexander $
  */
 
 
@@ -34,7 +34,7 @@
  *
  * @category   Zend
  * @package    Zend_Pdf
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Pdf_Element_Object_Stream extends Zend_Pdf_Element_Object
@@ -211,11 +211,6 @@ class Zend_Pdf_Element_Object_Stream extends Zend_Pdf_Element_Object
                                                                         $this->_originalDictionary['DecodeParms'][$id]);
                     break;
 
-                case 'RunLengthDecode':
-                    #require_once 'Zend/Pdf/Filter/RunLength.php';
-                    $valueRef = Zend_Pdf_Filter_RunLength::decode($valueRef);
-                    break;
-
                 default:
                     #require_once 'Zend/Pdf/Exception.php';
                     throw new Zend_Pdf_Exception('Unknown stream filter: \'' . $filterName . '\'.');
@@ -270,12 +265,7 @@ class Zend_Pdf_Element_Object_Stream extends Zend_Pdf_Element_Object
                                                                         $this->_originalDictionary['DecodeParms'][$id]);
                     break;
 
-                 case 'RunLengthDecode':
-                    #require_once 'Zend/Pdf/Filter/RunLength.php';
-                    $valueRef = Zend_Pdf_Filter_RunLength::encode($valueRef);
-                    break;
-
-               default:
+                default:
                     #require_once 'Zend/Pdf/Exception.php';
                     throw new Zend_Pdf_Exception('Unknown stream filter: \'' . $filterName . '\'.');
             }

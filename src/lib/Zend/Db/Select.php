@@ -15,9 +15,9 @@
  * @category   Zend
  * @package    Zend_Db
  * @subpackage Select
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: Select.php 22853 2010-08-19 19:01:09Z padraic $
+ * @version    $Id: Select.php 19155 2009-11-21 09:48:02Z mikaelkael $
  */
 
 
@@ -38,7 +38,7 @@
  * @category   Zend
  * @package    Zend_Db
  * @subpackage Select
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Db_Select
@@ -243,8 +243,7 @@ class Zend_Db_Select
     public function columns($cols = '*', $correlationName = null)
     {
         if ($correlationName === null && count($this->_parts[self::FROM])) {
-            $correlationNameKeys = array_keys($this->_parts[self::FROM]);
-            $correlationName = current($correlationNameKeys);
+            $correlationName = current(array_keys($this->_parts[self::FROM]));
         }
 
         if (!array_key_exists($correlationName, $this->_parts[self::FROM])) {
@@ -263,27 +262,16 @@ class Zend_Db_Select
     /**
      * Adds a UNION clause to the query.
      *
-     * The first parameter has to be an array of Zend_Db_Select or
-     * sql query strings.
+     * The first parameter $select can be a string, an existing Zend_Db_Select
+     * object or an array of either of these types.
      *
-     * <code>
-     * $sql1 = $db->select();
-     * $sql2 = "SELECT ...";
-     * $select = $db->select()
-     *      ->union(array($sql1, $sql2))
-     *      ->order("id");
-     * </code>
-     *
-     * @param  array $select Array of select clauses for the union.
+     * @param  array|string|Zend_Db_Select $select One or more select clauses for the UNION.
      * @return Zend_Db_Select This Zend_Db_Select object.
      */
     public function union($select = array(), $type = self::SQL_UNION)
     {
         if (!is_array($select)) {
-            #require_once 'Zend/Db/Select/Exception.php';
-            throw new Zend_Db_Select_Exception(
-                "union() only accepts an array of Zend_Db_Select instances of sql query strings."
-            );
+            $select = array();
         }
 
         if (!in_array($type, self::$_unionTypes)) {
@@ -466,7 +454,7 @@ class Zend_Db_Select
      * </code>
      *
      * @param string   $cond  The WHERE condition.
-     * @param mixed    $value OPTIONAL The value to quote into the condition.
+     * @param string   $value OPTIONAL A single value to quote into the condition.
      * @param constant $type  OPTIONAL The type of the given value
      * @return Zend_Db_Select This Zend_Db_Select object.
      */
@@ -483,7 +471,7 @@ class Zend_Db_Select
      * Otherwise identical to where().
      *
      * @param string   $cond  The WHERE condition.
-     * @param mixed    $value OPTIONAL The value to quote into the condition.
+     * @param string   $value OPTIONAL A single value to quote into the condition.
      * @param constant $type  OPTIONAL The type of the given value
      * @return Zend_Db_Select This Zend_Db_Select object.
      *
@@ -526,7 +514,7 @@ class Zend_Db_Select
      * appears. See {@link where()} for an example
      *
      * @param string $cond The HAVING condition.
-     * @param string|Zend_Db_Expr $val The value to quote into the condition.
+     * @param string|Zend_Db_Expr $val A single value to quote into the condition.
      * @return Zend_Db_Select This Zend_Db_Select object.
      */
     public function having($cond)
@@ -551,7 +539,7 @@ class Zend_Db_Select
      * Otherwise identical to orHaving().
      *
      * @param string $cond The HAVING condition.
-     * @param mixed  $val  The value to quote into the condition.
+     * @param string $val A single value to quote into the condition.
      * @return Zend_Db_Select This Zend_Db_Select object.
      *
      * @see having()
@@ -984,7 +972,7 @@ class Zend_Db_Select
      * Internal function for creating the where clause
      *
      * @param string   $condition
-     * @param mixed    $value  optional
+     * @param string   $value  optional
      * @param string   $type   optional
      * @param boolean  $bool  true = AND, false = OR
      * @return string  clause

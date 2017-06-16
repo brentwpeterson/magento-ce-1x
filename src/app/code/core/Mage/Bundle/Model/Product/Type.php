@@ -210,27 +210,19 @@ class Mage_Bundle_Model_Product_Type extends Mage_Catalog_Model_Product_Type_Abs
     public function beforeSave($product = null)
     {
         parent::beforeSave($product);
-        $product = $this->getProduct($product);
 
-        // If bundle product has dynamic weight, than delete weight attribute
-        if (!$product->getData('weight_type') && $product->hasData('weight')) {
-            $product->setData('weight', false);
-        }
+        $this->getProduct($product)->canAffectOptions(false);
 
-        $product->canAffectOptions(false);
-
-        if ($product->getCanSaveBundleSelections()) {
-            $product->canAffectOptions(true);
-            $selections = $product->getBundleSelectionsData();
-            if ($selections) {
+        if ($this->getProduct($product)->getCanSaveBundleSelections()) {
+            $this->getProduct($product)->canAffectOptions(true);
+            if ($selections = $this->getProduct($product)->getBundleSelectionsData()) {
                 if (!empty($selections)) {
-                    $options = $product->getBundleOptionsData();
-                    if ($options) {
+                    if ($options = $this->getProduct($product)->getBundleOptionsData()) {
                         foreach ($options as $option) {
                             if (empty($option['delete']) || 1 != (int)$option['delete']) {
-                                $product->setTypeHasOptions(true);
+                                $this->getProduct($product)->setTypeHasOptions(true);
                                 if (1 == (int)$option['required']) {
-                                    $product->setTypeHasRequiredOptions(true);
+                                    $this->getProduct($product)->setTypeHasRequiredOptions(true);
                                     break;
                                 }
                             }
@@ -369,21 +361,14 @@ class Mage_Bundle_Model_Product_Type extends Mage_Catalog_Model_Product_Type_Abs
         $keyOptionIds = (is_array($optionIds) ? implode('_', $optionIds) : '');
         $key = $this->_keySelectionsCollection . $keyOptionIds;
         if (!$this->getProduct($product)->hasData($key)) {
-            $storeId = $this->getProduct($product)->getStoreId();
             $selectionsCollection = Mage::getResourceModel('bundle/selection_collection')
                 ->addAttributeToSelect(Mage::getSingleton('catalog/config')->getProductAttributes())
                 ->setFlag('require_stock_items', true)
                 ->setFlag('product_children', true)
                 ->setPositionOrder()
                 ->addStoreFilter($this->getStoreFilter($product))
-                ->setStoreId($storeId)
                 ->addFilterByRequiredOptions()
                 ->setOptionIdsFilter($optionIds);
-
-            if (!Mage::helper('catalog')->isPriceGlobal() && $storeId) {
-                $websiteId = Mage::app()->getStore($storeId)->getWebsiteId();
-                $selectionsCollection->joinPrices($websiteId);
-            }
 
             $this->getProduct($product)->setData($key, $selectionsCollection);
         }
@@ -694,20 +679,13 @@ class Mage_Bundle_Model_Product_Type extends Mage_Catalog_Model_Product_Type_Abs
         $usedSelectionsIds  = $this->getProduct($product)->getData($this->_keyUsedSelectionsIds);
 
         if (!$usedSelections || serialize($usedSelectionsIds) != serialize($selectionIds)) {
-            $storeId = $this->getProduct($product)->getStoreId();
             $usedSelections = Mage::getResourceModel('bundle/selection_collection')
                 ->addAttributeToSelect('*')
                 ->setFlag('require_stock_items', true)
                 ->addStoreFilter($this->getStoreFilter($product))
-                ->setStoreId($storeId)
                 ->setPositionOrder()
                 ->addFilterByRequiredOptions()
                 ->setSelectionIdsFilter($selectionIds);
-
-                if (!Mage::helper('catalog')->isPriceGlobal() && $storeId) {
-                    $websiteId = Mage::app()->getStore($storeId)->getWebsiteId();
-                    $usedSelections->joinPrices($websiteId);
-                }
             $this->getProduct($product)->setData($this->_keyUsedSelections, $usedSelections);
             $this->getProduct($product)->setData($this->_keyUsedSelectionsIds, $selectionIds);
         }

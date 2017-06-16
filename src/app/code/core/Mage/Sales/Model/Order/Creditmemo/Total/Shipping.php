@@ -58,29 +58,14 @@ class Mage_Sales_Model_Order_Creditmemo_Total_Shipping extends Mage_Sales_Model_
                 $baseShippingInclTax= $baseShippingAmount;
                 $baseShippingAmount = Mage::app()->getStore()->roundPrice($baseShipping*$part);
             }
-            /*
-             * Rounded allowed shipping refund amount is the highest acceptable shipping refund amount.
-             * Shipping refund amount shouldn't cause errors, if it doesn't exceed that limit.
-             * Note: ($x < $y + 0.0001) means ($x <= $y) for floats
-             */
-            if ($baseShippingAmount < Mage::app()->getStore()->roundPrice($baseAllowedAmount) + 0.0001) {
-                /*
-                 * Shipping refund amount should be equated to allowed refund amount,
-                 * if it exceeds that limit.
-                 * Note: ($x > $y - 0.0001) means ($x >= $y) for floats
-                 */
-                if ($baseShippingAmount > $baseAllowedAmount - 0.0001) {
-                    $shipping     = $allowedAmount;
-                    $baseShipping = $baseAllowedAmount;
-                } else {
-                    if ($baseShipping != 0) {
-                        $shipping = $shipping * $baseShippingAmount / $baseShipping;
-                    }
-                    $shipping     = Mage::app()->getStore()->roundPrice($shipping);
-                    $baseShipping = $baseShippingAmount;
+            if ($baseShippingAmount<= $baseAllowedAmount) {
+                if ($baseShipping != 0) {
+                    $shipping = $shipping*$baseShippingAmount/$baseShipping;
                 }
+                $shipping       = Mage::app()->getStore()->roundPrice($shipping);
+                $baseShipping   = $baseShippingAmount;
             } else {
-                $baseAllowedAmount = $order->getBaseCurrency()->format($baseAllowedAmount,null,false);
+                $baseAllowedAmount = $order->formatBasePrice($baseAllowedAmount);
                 Mage::throwException(
                     Mage::helper('sales')->__('Maximum shipping amount allowed to refund is: %s', $baseAllowedAmount)
                 );

@@ -56,12 +56,12 @@ class Mage_Customer_Block_Widget_Name extends Mage_Customer_Block_Widget_Abstrac
      */
     public function showPrefix()
     {
-        return (bool)$this->_getAttribute('prefix')->getIsVisible();
+        return $this->_showConfig('prefix_show');
     }
 
     public function isPrefixRequired()
     {
-        return (bool)$this->_getAttribute('prefix')->getIsRequired();
+        return $this->getConfig('prefix_show')=='req';
     }
 
     public function getPrefixOptions()
@@ -79,17 +79,17 @@ class Mage_Customer_Block_Widget_Name extends Mage_Customer_Block_Widget_Abstrac
 
     public function showMiddlename()
     {
-        return (bool)$this->_getAttribute('middlename')->getIsVisible();
+        return $this->_showConfig('middlename_show');
     }
 
     public function showSuffix()
     {
-        return (bool)$this->_getAttribute('suffix')->getIsVisible();
+        return $this->_showConfig('suffix_show');
     }
 
     public function isSuffixRequired()
     {
-        return (bool)$this->_getAttribute('suffix')->getIsRequired();
+        return $this->getConfig('suffix_show') == 'req';
     }
 
     public function getSuffixOptions()
@@ -120,19 +120,5 @@ class Mage_Customer_Block_Widget_Name extends Mage_Customer_Block_Widget_Abstrac
         $class .= $this->showMiddlename() ? '-middlename' : '';
         $class .= $this->showSuffix() ? '-suffix' : '';
         return $class;
-    }
-
-    /**
-     * Retrieve customer attribute instance
-     *
-     * @param string $attributeCode
-     * @return Mage_Customer_Model_Attribute
-     */
-    protected function _getAttribute($attributeCode)
-    {
-        if (!($this->getObject() instanceof Mage_Customer_Model_Customer)) {
-            return Mage::getSingleton('eav/config')->getAttribute('customer_address', $attributeCode);
-        }
-        return parent::_getAttribute($attributeCode);
     }
 }

@@ -381,13 +381,6 @@ class Mage_Core_Helper_Data extends Mage_Core_Helper_Abstract
             $result = true;
         }
 
-        $eventName = sprintf('core_copy_fieldset_%s_%s', $fieldset, $aspect);
-        Mage::dispatchEvent($eventName, array(
-            'target' => $target,
-            'source' => $source,
-            'root'   => $root
-        ));
-
         return $result;
     }
 
@@ -635,7 +628,7 @@ XML;
                 } else {
                     $targetMtime = filemtime($targetFile);
                     foreach ($srcFiles as $file) {
-                        if (!file_exists($file) || @filemtime($file) > $targetMtime) {
+                        if (filemtime($file) > $targetMtime) {
                             $shouldMerge = true;
                             break;
                         }

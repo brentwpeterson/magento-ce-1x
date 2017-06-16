@@ -59,12 +59,10 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
 
                     $tagNamesArr = $this->_cleanTags($this->_extractTags($tagName));
 
-                    $counter = new Varien_Object(array(
-                        "new" => 0,
-                        "exist" => array(),
-                        "success" => array(),
-                        "recurrence" => array())
-                    );
+                    $counter = new Varien_Object(array("new" => 0,
+                                                       "exist" => array(),
+                                                       "success" => array(),
+                                                       "recurrence" => array()));
 
                     $tagModel = Mage::getModel('tag/tag');
                     $tagRelationModel = Mage::getModel('tag/tag_relation');
@@ -79,7 +77,7 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
                             ->setStoreId($storeId)
                             ->setProductId($productId)
                             ->setCustomerId($customerId)
-                            ->setActive(Mage_Tag_Model_Tag_Relation::STATUS_ACTIVE)
+                            ->setActive(1)
                             ->setCreatedAt( $tagRelationModel->getResource()->formatDate(time()) );
 
                         if (!$tagModel->getId()) {
@@ -89,6 +87,7 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
                                 ->save();
 
                             $tagRelationModel->setTagId($tagModel->getId())->save();
+
                             $counter->setNew($counter->getNew() + 1);
                         } else {
                             $tagStatus = $tagModel->getStatus();
@@ -97,14 +96,7 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
                             switch($tagStatus) {
                                 case $tagModel->getApprovedStatus():
                                     if($this->_checkLinkBetweenTagProduct($tagRelationModel)) {
-                                        $relation = $this->_getLinkBetweenTagCustomerProduct($tagRelationModel, $tagModel);
-                                        if ($relation->getId()) {
-                                            if (!$relation->getActive()) {
-                                                $tagRelationModel
-                                                    ->setId($relation->getId())
-                                                    ->save();
-                                            }
-                                        } else {
+                                        if(!$this->_checkLinkBetweenTagCustomerProduct($tagRelationModel, $tagModel)) {
                                             $tagRelationModel->save();
                                         }
                                         $counter->setExist(array_merge($counter->getExist(), array($tagName)));
@@ -114,14 +106,7 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
                                     }
                                     break;
                                 case $tagModel->getPendingStatus():
-                                    $relation = $this->_getLinkBetweenTagCustomerProduct($tagRelationModel, $tagModel);
-                                    if ($relation->getId()) {
-                                        if (!$relation->getActive()) {
-                                            $tagRelationModel
-                                                ->setId($relation->getId())
-                                                ->save();
-                                        }
-                                    } else {
+                                    if(!$this->_checkLinkBetweenTagCustomerProduct($tagRelationModel, $tagModel)) {
                                         $tagRelationModel->save();
                                     }
                                     $counter->setNew($counter->getNew() + 1);
@@ -138,7 +123,9 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
                             }
                         }
                     }
+
                     $this->_fillMessageBox($counter);
+                    
                 } catch (Exception $e) {
                     Mage::logException($e);
                     $session->addError($this->__('Unable to save tag(s).'));
@@ -150,7 +137,7 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
 
     /**
      * Checks inputed tags on the correctness of symbols and split string to array of tags
-     *
+     * 
      * @param string $tagNamesInString
      * @return array
      */
@@ -161,7 +148,7 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
 
     /**
      * Clears the tag from the separating characters.
-     *
+     * 
      * @param array $tagNamesArr
      * @return array
      */
@@ -179,7 +166,7 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
 
     /**
      * Checks whether the already marked this product in this store by this tag.
-     *
+     * 
      * @param Mage_Tag_Model_Tag_Relation $tagRelationModel
      * @return boolean
      */
@@ -194,37 +181,24 @@ class Mage_Tag_IndexController extends Mage_Core_Controller_Front_Action
 
     /**
      * Checks whether the already marked this product in this store by this tag and by this customer.
-     *
+     * 
      * @param Mage_Tag_Model_Tag_Relation $tagRelationModel
      * @param Mage_Tag_Model_Tag $tagModel
      * @return boolean
      */
     protected function _checkLinkBetweenTagCustomerProduct($tagRelationModel, $tagModel)
     {
-        return (count($this->_getLinkBetweenTagCustomerProduct($tagRelationModel, $tagModel)
-            ->getProductIds()) > 0);
-    }
-
-    /**
-     * Get relation model for marked product in this store by this tag and by this customer.
-     *
-     * @param Mage_Tag_Model_Tag_Relation $tagRelationModel
-     * @param Mage_Tag_Model_Tag $tagModel
-     * @return Mage_Tag_Model_Tag_Relation
-     */
-    protected function _getLinkBetweenTagCustomerProduct($tagRelationModel, $tagModel)
-    {
-        return Mage::getModel('tag/tag_relation')->loadByTagCustomer(
-            $tagRelationModel->getProductId(),
-            $tagModel->getId(),
-            $tagRelationModel->getCustomerId(),
-            $tagRelationModel->getStoreId()
-        );
+        return (count(Mage::getModel('tag/tag_relation')->loadByTagCustomer(
+                            $tagRelationModel->getProductId(),
+                            $tagModel->getId(),
+                            $tagRelationModel->getCustomerId(),
+                            $tagRelationModel->getStoreId())
+                        ->getProductIds()) > 0);
     }
 
     /**
      * Fill Message Box by success and notice messages about results of user actions.
-     *
+     * 
      * @param Varien_Object $counter
      * @return void
      */

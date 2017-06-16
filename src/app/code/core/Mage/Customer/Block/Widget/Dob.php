@@ -43,12 +43,12 @@ class Mage_Customer_Block_Widget_Dob extends Mage_Customer_Block_Widget_Abstract
 
     public function isEnabled()
     {
-        return (bool)$this->_getAttribute('dob')->getIsVisible();
+        return (bool)$this->getConfig('dob_show');
     }
 
     public function isRequired()
     {
-        return (bool)$this->_getAttribute('dob')->getIsRequired();
+        return $this->getConfig('dob_show')=='req';
     }
 
     public function setDate($date)

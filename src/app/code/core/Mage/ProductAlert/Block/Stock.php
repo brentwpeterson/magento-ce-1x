@@ -26,8 +26,11 @@
 
 
 /**
- * @deprecated after 1.4.1.0
- * @see Mage_ProductAlert_Block_Product_View
+ * ProductAlert stock block
+ *
+ * @category   Mage
+ * @package    Mage_ProductAlert
+ * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Mage_ProductAlert_Block_Stock extends Mage_Core_Block_Template
 {

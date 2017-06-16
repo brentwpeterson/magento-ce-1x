@@ -95,7 +95,7 @@ class Mage_Catalog_Model_Convert_Adapter_Product
     {
         $attrFilterArray = array();
         $attrFilterArray ['name']           = 'like';
-        $attrFilterArray ['sku']            = 'startsWith';
+        $attrFilterArray ['sku']            = 'like';
         $attrFilterArray ['type']           = 'eq';
         $attrFilterArray ['attribute_set']  = 'eq';
         $attrFilterArray ['visibility']     = 'eq';
@@ -597,7 +597,7 @@ class Mage_Catalog_Model_Convert_Adapter_Product
 
         if (isset($importData['websites'])) {
             $websiteIds = $product->getWebsiteIds();
-            if (!is_array($websiteIds) || !$store->getId()) {
+            if (!is_array($websiteIds)) {
                 $websiteIds = array();
             }
             $websiteCodes = explode(',', $importData['websites']);
@@ -619,9 +619,6 @@ class Mage_Catalog_Model_Convert_Adapter_Product
                 continue;
             }
             if (in_array($field, $this->_imageFields)) {
-                continue;
-            }
-            if (is_null($value)) {
                 continue;
             }
 

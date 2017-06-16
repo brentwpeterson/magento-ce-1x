@@ -36,13 +36,10 @@ class Mage_Adminhtml_Block_Review_Grid_Renderer_Type extends Mage_Adminhtml_Bloc
 {
     public function render(Varien_Object $row)
     {
-
         if (is_null($row->getCustomerId())) {
-            if ($row->getStoreId() == Mage_Core_Model_App::ADMIN_STORE_ID) {
-                return Mage::helper('review')->__('Administrator');
-            } else {
-                return Mage::helper('review')->__('Guest');
-            }
+            return Mage::helper('review')->__('Guest');
+        } elseif ($row->getCustomerId() == 0) {
+            return Mage::helper('review')->__('Administrator');
         } elseif ($row->getCustomerId() > 0) {
             return Mage::helper('review')->__('Customer');
         }

@@ -15,12 +15,12 @@
  * @category   Zend
  * @package    Zend_Captcha
  * @subpackage Adapter
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: Image.php 22590 2010-07-16 20:53:40Z mikaelkael $
+ * @version    $Id: Image.php 18951 2009-11-12 16:26:19Z alexander $
  */
 
-/** @see Zend_Captcha_Word */
+/** Zend_Captcha_Word */
 #require_once 'Zend/Captcha/Word.php';
 
 /**
@@ -31,7 +31,7 @@
  * @category   Zend
  * @package    Zend_Captcha
  * @subpackage Adapter
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Captcha_Image extends Zend_Captcha_Word
@@ -94,7 +94,7 @@ class Zend_Captcha_Image extends Zend_Captcha_Word
 
     /**
      * Image to use as starting point
-     * Default is blank image. If provided, should be PNG image.
+     * Default is blank image. If ptovided, should be PNG image.
      *
      * @var string
      */
@@ -577,14 +577,10 @@ class Zend_Captcha_Image extends Zend_Captcha_Word
             // safety guard
             return;
         }
-        $suffixLength = strlen($this->_suffix);
         foreach (new DirectoryIterator($imgdir) as $file) {
             if (!$file->isDot() && !$file->isDir()) {
                 if ($file->getMTime() < $expire) {
-                    // only deletes files ending with $this->_suffix
-                    if (substr($file->getFilename(), -($suffixLength)) == $this->_suffix) {
-                        unlink($file->getPathname());
-                    }
+                    unlink($file->getPathname());
                 }
             }
         }
@@ -599,7 +595,6 @@ class Zend_Captcha_Image extends Zend_Captcha_Word
      */
     public function render(Zend_View_Interface $view = null, $element = null)
     {
-        return '<img width="' . $this->getWidth() . '" height="' . $this->getHeight() . '" alt="' . $this->getImgAlt()
-             . '" src="' . $this->getImgUrl() . $this->getId() . $this->getSuffix() . '" />';
+        return '<img width="'.$this->getWidth().'" height="'.$this->getHeight().'" alt="'.$this->getImgAlt().'" src="' . $this->getImgUrl() . $this->getId() . $this->getSuffix() . '"/><br/>';
     }
 }

@@ -39,10 +39,6 @@ class Mage_Adminhtml_Sales_Order_CreditmemoController extends Mage_Adminhtml_Con
     protected function _getItemData()
     {
         $data = $this->getRequest()->getParam('creditmemo');
-        if (!$data) {
-            $data = Mage::getSingleton('adminhtml/session')->getFormData(true);
-        }
-
         if (isset($data['items'])) {
             $qtys = $data['items'];
         } else {
@@ -285,7 +281,7 @@ class Mage_Adminhtml_Sales_Order_CreditmemoController extends Mage_Adminhtml_Con
 
                 $comment = '';
                 if (!empty($data['comment_text'])) {
-                    $creditmemo->addComment($data['comment_text'], isset($data['comment_customer_notify']), isset($data['is_visible_on_front']));
+                    $creditmemo->addComment($data['comment_text'], isset($data['comment_customer_notify']));
                     if (isset($data['comment_customer_notify'])) {
                         $comment = $data['comment_text'];
                     }
@@ -316,10 +312,9 @@ class Mage_Adminhtml_Sales_Order_CreditmemoController extends Mage_Adminhtml_Con
             }
         } catch (Mage_Core_Exception $e) {
             $this->_getSession()->addError($e->getMessage());
-            Mage::getSingleton('adminhtml/session')->setFormData($data);
         } catch (Exception $e) {
             Mage::logException($e);
-            $this->_getSession()->addError($this->__('Cannot save the credit memo.'));
+            $this->_getSession()->addError($this->__('Cannot save the cedit memo.'));
         }
         $this->_redirect('*/*/new', array('_current' => true));
     }
@@ -381,7 +376,7 @@ class Mage_Adminhtml_Sales_Order_CreditmemoController extends Mage_Adminhtml_Con
                 Mage::throwException($this->__('The Comment Text field cannot be empty.'));
             }
             $creditmemo = $this->_initCreditmemo();
-            $creditmemo->addComment($data['comment'], isset($data['is_customer_notified']), isset($data['is_visible_on_front']));
+            $creditmemo->addComment($data['comment'], isset($data['is_customer_notified']));
             $creditmemo->_hasDataChanges = true;
             $creditmemo->save();
             $creditmemo->sendUpdateEmail(!empty($data['is_customer_notified']), $data['comment']);

@@ -225,20 +225,20 @@ class Mage_Catalog_Model_Resource_Eav_Mysql4_Product_Compare_Item extends Mage_C
     /**
      * Clear compare items by visitor and/or customer
      *
-     * @param int $visitorId
-     * @param int $customerId
+     * @param int $visitor_id
+     * @param int $customer_id
      * @return Mage_Catalog_Model_Resource_Eav_Mysql4_Product_Compare_Item
      */
-    public function clearItems($visitorId = null, $customerId = null)
+    public function clearItems($visitor_id = null, $customer_id = null)
     {
         $where = array();
-        if ($customerId) {
-            $customerId = (int)$customerId;
-            $where[] = $this->_getWriteAdapter()->quoteInto('customer_id=?', $customerId);
+        if ($customer_id) {
+            $customer_id = (int)$customer_id;
+            $where[] = $this->_getWriteAdapter()->quoteInto('customer_id=?', $customer_id);
         }
-        if ($visitorId) {
-            $visitorId = (int)$visitorId;
-            $where[] = $this->_getWriteAdapter()->quoteInto('visitor_id=?', $visitorId);
+        if ($visitor_id) {
+            $visitor_id = (int)$visitor_id;
+            $where[] = $this->_getWriteAdapter()->quoteInto('visitor_id=?', $visitor_id);
         }
         if (!$where) {
             return $this;
@@ -246,4 +246,5 @@ class Mage_Catalog_Model_Resource_Eav_Mysql4_Product_Compare_Item extends Mage_C
         $this->_getWriteAdapter()->delete($this->getMainTable(), $where);
         return $this;
     }
+
 }

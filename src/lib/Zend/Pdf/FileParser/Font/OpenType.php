@@ -15,9 +15,9 @@
  * @category   Zend
  * @package    Zend_Pdf
  * @subpackage FileParser
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: OpenType.php 20096 2010-01-06 02:05:09Z bkarwin $
+ * @version    $Id: OpenType.php 18993 2009-11-15 17:09:16Z alexander $
  */
 
 /** Zend_Pdf_FileParser_Font */
@@ -45,7 +45,7 @@
  *
  * @package    Zend_Pdf
  * @subpackage FileParser
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 abstract class Zend_Pdf_FileParser_Font_OpenType extends Zend_Pdf_FileParser_Font
@@ -500,11 +500,11 @@ abstract class Zend_Pdf_FileParser_Font_OpenType extends Zend_Pdf_FileParser_Fon
 
         try {
             $this->_jumpToTable('OS/2');
-        } catch (Zend_Pdf_Exception $e) {
+        } catch (Zend_Pdf_Exception $exception) {
             /* This table is not always present. If missing, use default values.
              */
             #require_once 'Zend/Pdf/Exception.php';
-            if ($e->getCode() == Zend_Pdf_Exception::REQUIRED_TABLE_NOT_FOUND) {
+            if ($exception->getCode() == Zend_Pdf_Exception::REQUIRED_TABLE_NOT_FOUND) {
                 $this->_debugLog('No OS/2 table found. Using default values');
                 $this->fontWeight = Zend_Pdf_Font::WEIGHT_NORMAL;
                 $this->fontWidth = Zend_Pdf_Font::WIDTH_NORMAL;
@@ -525,8 +525,7 @@ abstract class Zend_Pdf_FileParser_Font_OpenType extends Zend_Pdf_FileParser_Fon
             } else {
                 /* Something else went wrong. Throw this exception higher up the chain.
                  */
-                throw $e;
-                throw new Zend_Pdf_Exception($e->getMessage(), $e->getCode(), $e);
+                throw $exception;
             }
         }
 

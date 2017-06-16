@@ -165,8 +165,7 @@ class Mage_Sales_Model_Quote_Address_Total_Shipping extends Mage_Sales_Model_Quo
                     $amountPrice = $address->getQuote()->getStore()->convertPrice($rate->getPrice(), false);
                     $this->_setAmount($amountPrice);
                     $this->_setBaseAmount($rate->getPrice());
-                    $shippingDescription = $rate->getCarrierTitle() . ' - ' . $rate->getMethodTitle();
-                    $address->setShippingDescription(trim($shippingDescription, '-'));
+                    $address->setShippingDescription($rate->getCarrierTitle().' - '.$rate->getMethodTitle());
                     break;
                 }
             }
@@ -184,15 +183,11 @@ class Mage_Sales_Model_Quote_Address_Total_Shipping extends Mage_Sales_Model_Quo
     public function fetch(Mage_Sales_Model_Quote_Address $address)
     {
         $amount = $address->getShippingAmount();
-        if ($amount != 0 || $address->getShippingDescription()) {
-            $title = Mage::helper('sales')->__('Shipping & Handling');
-            if ($address->getShippingDescription()) {
-                $title .= ' (' . $address->getShippingDescription() . ')';
-            }
+        if ($amount!=0 || $address->getShippingDescription()) {
             $address->addTotal(array(
-                'code' => $this->getCode(),
-                'title' => $title,
-                'value' => $address->getShippingAmount()
+                'code'=>$this->getCode(),
+                'title'=>Mage::helper('sales')->__('Shipping & Handling').' ('.$address->getShippingDescription().')',
+                'value'=>$address->getShippingAmount()
             ));
         }
         return $this;

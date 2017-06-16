@@ -59,8 +59,6 @@ class Mage_Core_Model_Store extends Mage_Core_Model_Abstract
 
     const CACHE_TAG                     = 'store';
 
-    const COOKIE_NAME                   = 'store';
-
     protected $_cacheTag    = true;
 
     /**
@@ -467,20 +465,10 @@ class Mage_Core_Model_Store extends Mage_Core_Model_Abstract
      */
     protected function _updatePathUseStoreView($url)
     {
-        if ($this->getStoreInUrl()) {
-            $url .= $this->getCode() . '/';
+        if (Mage::isInstalled() && $this->getConfig(self::XML_PATH_STORE_IN_URL)) {
+            $url .= $this->getCode().'/';
         }
         return $url;
-    }
-
-    /**
-     * Returns whether url forming scheme prepends url path with store view code
-     *
-     * @return bool
-     */
-    public function getStoreInUrl()
-    {
-        return Mage::isInstalled() && $this->getConfig(self::XML_PATH_STORE_IN_URL);
     }
 
     /**
@@ -860,41 +848,33 @@ class Mage_Core_Model_Store extends Mage_Core_Model_Abstract
      */
     public function getCurrentUrl($fromStore = true)
     {
-        $sidQueryParam = $this->_getSession()->getSessionIdQueryParam();
-        $requestString = Mage::getSingleton('core/url')->escape(ltrim(Mage::app()->getRequest()->getRequestString(), '/'));
+        $query = Mage::getSingleton('core/url')->escape(ltrim(Mage::app()->getRequest()->getRequestString(), '/'));
 
-        $storeUrl = Mage::app()->getStore()->isCurrentlySecure()
-                ? $this->getUrl('', array('_secure' => true))
-                : $this->getUrl('');
-        $storeParsedUrl = parse_url($storeUrl);
-
-        $storeParsedQuery = array();
-        if (isset($storeParsedUrl['query'])) {
-            parse_str($storeParsedUrl['query'], $storeParsedQuery);
+        if (Mage::app()->getStore()->isCurrentlySecure()) {
+            $parsedUrl = parse_url($this->getUrl('', array('_secure' => true)));
+        } else {
+            $parsedUrl = parse_url($this->getUrl(''));
+        }
+        $parsedQuery = array();
+        if (isset($parsedUrl['query'])) {
+            parse_str($parsedUrl['query'], $parsedQuery);
         }
 
-        $currQuery = Mage::app()->getRequest()->getQuery();
-        if (isset($currQuery[$sidQueryParam]) && !empty($currQuery[$sidQueryParam])
-            && $this->_getSession()->getSessionIdForHost($storeUrl) != $currQuery[$sidQueryParam]
-        ) {
-            unset($currQuery[$sidQueryParam]);
-        }
-
-        foreach ($currQuery as $k => $v) {
-            $storeParsedQuery[$k] = $v;
+        foreach (Mage::app()->getRequest()->getQuery() as $k => $v) {
+            $parsedQuery[$k] = $v;
         }
 
         if (!Mage::getStoreConfigFlag(Mage_Core_Model_Store::XML_PATH_STORE_IN_URL, $this->getCode())) {
-            $storeParsedQuery['___store'] = $this->getCode();
+            $parsedQuery['___store'] = $this->getCode();
         }
         if ($fromStore !== false) {
-            $storeParsedQuery['___from_store'] = $fromStore === true ? Mage::app()->getStore()->getCode() : $fromStore;
+            $parsedQuery['___from_store'] = $fromStore === true ? Mage::app()->getStore()->getCode() : $fromStore;
         }
 
-        return $storeParsedUrl['scheme'] . '://' . $storeParsedUrl['host']
-            . (isset($storeParsedUrl['port']) ? ':' . $storeParsedUrl['port'] : '')
-            . $storeParsedUrl['path'] . $requestString
-            . ($storeParsedQuery ? '?'.http_build_query($storeParsedQuery, '', '&amp;') : '');
+        return $parsedUrl['scheme'] . '://' . $parsedUrl['host']
+            . (isset($parsedUrl['port']) ? ':' . $parsedUrl['port'] : '')
+            . $parsedUrl['path'] . $query
+            . ($parsedQuery ? '?'.http_build_query($parsedQuery, '', '&amp;') : '');
     }
 
     public function getIsActive()

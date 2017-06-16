@@ -157,13 +157,13 @@
                             </centinel>
                         </validator>
                     </JCB>
-                    <SM>
+                    <MCI>
                         <validator>
                             <centinel>
                                 <state>centinel/state_mastercard</state>
                             </centinel>
                         </validator>
-                    </SM>
+                    </MCI>
                 </types>
             </cc>
         </payment>

@@ -19,7 +19,7 @@
 
 		// No match then just ignore the call
 		if (!self.length)
-			return self;
+			return;
 
 		// Get editor instance
 		if (!settings)
@@ -91,8 +91,7 @@
 
 			// Setup tinyMCEPreInit object this will later be used by the TinyMCE
 			// core script to locate other resources like CSS files, dialogs etc
-			// You can also predefined a tinyMCEPreInit object and then it will use that instead
-			win.tinyMCEPreInit = win.tinyMCEPreInit || {
+			win.tinyMCEPreInit = {
 				base : base,
 				suffix : suffix,
 				query : query
@@ -144,11 +143,6 @@
 				success : function() {
 					tinymce.dom.Event.domLoaded = 1;
 					lazyLoading = 2;
-
-					// Execute callback after mainscript has been loaded and before the initialization occurs
-					if (settings.script_loaded)
-						settings.script_loaded();
-
 					init();
 
 					$.each(delayedInits, function(i, init) {
@@ -163,8 +157,6 @@
 			else
 				init();
 		}
-
-		return self;
 	};
 
 	// Add :tinymce psuedo selector this will select elements that has been converted into editor instances
@@ -250,21 +242,20 @@
 				var self = this;
 
 				if (!containsTinyMCE(self))
-					return origFn.apply(self, arguments);
+					return origFn.call(self, value);
 
 				if (value !== undefined) {
 					loadOrSave.call(self.filter(":tinymce"), value);
-					origFn.apply(self.not(":tinymce"), arguments);
+					origFn.call(self.not(":tinymce"), value);
 
 					return self; // return original set for chaining
 				} else {
 					var ret = "";
-					var args = arguments;
-					
+
 					(textProc ? self : self.eq(0)).each(function(i, node) {
 						var ed = tinyMCEInstance(node);
 
-						ret += ed ? (textProc ? ed.getContent().replace(/<(?:"[^"]*"|'[^']*'|[^'">])*>/g, "") : ed.getContent()) : origFn.apply($(node), args);
+						ret += ed ? (textProc ? ed.getContent().replace(/<(?:"[^"]*"|'[^']*'|[^'">])*>/g, "") : ed.getContent()) : origFn.call($(node), value);
 					});
 
 					return ret;
@@ -281,7 +272,7 @@
 				var self = this;
 
 				if (!containsTinyMCE(self))
-					return origFn.apply(self, arguments);
+					return origFn.call(self, value);
 
 				if (value !== undefined) {
 					self.filter(":tinymce").each(function(i, node) {
@@ -290,7 +281,7 @@
 						ed && ed.setContent(prepend ? value + ed.getContent() : ed.getContent() + value);
 					});
 
-					origFn.apply(self.not(":tinymce"), arguments);
+					origFn.call(self.not(":tinymce"), value);
 
 					return self; // return original set for chaining
 				}

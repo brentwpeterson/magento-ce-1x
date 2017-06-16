@@ -15,9 +15,9 @@
  * @category   Zend
  * @package    Zend_Cache
  * @subpackage Zend_Cache_Frontend
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: Class.php 22654 2010-07-22 18:44:13Z mabe $
+ * @version    $Id: Class.php 16541 2009-07-07 06:59:03Z bkarwin $
  */
 
 /**
@@ -29,7 +29,7 @@
 /**
  * @package    Zend_Cache
  * @subpackage Zend_Cache_Frontend
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Cache_Frontend_Class extends Zend_Cache_Core
@@ -208,14 +208,14 @@ class Zend_Cache_Frontend_Class extends Zend_Cache_Core
             // We do not have not cache
             return call_user_func_array(array($this->_cachedEntity, $name), $parameters);
         }
-
         $id = $this->_makeId($name, $parameters);
-        if ( ($rs = $this->load($id)) && isset($rs[0], $rs[1]) ) {
+        if ($this->test($id)) {
             // A cache is available
-            $output = $rs[0];
-            $return = $rs[1];
+            $result = $this->load($id);
+            $output = $result[0];
+            $return = $result[1];
         } else {
-            // A cache is not available (or not valid for this frontend)
+            // A cache is not available
             ob_start();
             ob_implicit_flush(false);
             $return = call_user_func_array(array($this->_cachedEntity, $name), $parameters);
@@ -224,31 +224,20 @@ class Zend_Cache_Frontend_Class extends Zend_Cache_Core
             $data = array($output, $return);
             $this->save($data, $id, $this->_tags, $this->_specificLifetime, $this->_priority);
         }
-
         echo $output;
         return $return;
     }
 
     /**
-     * ZF-9970
-     *
-     * @deprecated
-     */
-    private function _makeId($name, $args)
-    {
-        return $this->makeId($name, $args);
-    }
-
-    /**
      * Make a cache id from the method name and parameters
      *
-     * @param  string $name Method name
-     * @param  array  $args Method parameters
+     * @param  string $name       Method name
+     * @param  array  $parameters Method parameters
      * @return string Cache id
      */
-    public function makeId($name, array $args = array())
+    private function _makeId($name, $parameters)
     {
-        return md5($this->_cachedEntityLabel . '__' . $name . '__' . serialize($args));
+        return md5($this->_cachedEntityLabel . '__' . $name . '__' . serialize($parameters));
     }
 
 }

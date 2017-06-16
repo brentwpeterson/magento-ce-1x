@@ -16,8 +16,8 @@
  * @category   Zend
  * @package    Zend_Http
  * @subpackage Client_Adapter
- * @version    $Id: Proxy.php 22445 2010-06-16 09:09:12Z bate $
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @version    $Id: Proxy.php 17118 2009-07-26 09:41:41Z shahar $
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 
@@ -46,7 +46,7 @@
  * @category   Zend
  * @package    Zend_Http
  * @subpackage Client_Adapter
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Http_Client_Adapter_Proxy extends Zend_Http_Client_Adapter_Socket
@@ -60,7 +60,6 @@ class Zend_Http_Client_Adapter_Proxy extends Zend_Http_Client_Adapter_Socket
         'ssltransport'  => 'ssl',
         'sslcert'       => null,
         'sslpassphrase' => null,
-        'sslusecontext' => false,
         'proxy_host'    => '',
         'proxy_port'    => 8080,
         'proxy_user'    => '',
@@ -91,11 +90,6 @@ class Zend_Http_Client_Adapter_Proxy extends Zend_Http_Client_Adapter_Socket
         // If no proxy is set, fall back to Socket adapter
         if (! $this->config['proxy_host']) {
             return parent::connect($host, $port, $secure);
-        }
-        
-        /* Url might require stream context even if proxy connection doesn't */
-        if ($secure) {
-        	$this->config['sslusecontext'] = true;
         }
 
         // Connect (a non-secure connection) to the proxy server
@@ -168,26 +162,15 @@ class Zend_Http_Client_Adapter_Proxy extends Zend_Http_Client_Adapter_Socket
             $request .= "$v\r\n";
         }
 
-        if(is_resource($body)) {
-            $request .= "\r\n";
-        } else {
-            // Add the request body
-            $request .= "\r\n" . $body;
-        }
-        
+        // Add the request body
+        $request .= "\r\n" . $body;
+
         // Send the request
         if (! @fwrite($this->socket, $request)) {
             #require_once 'Zend/Http/Client/Adapter/Exception.php';
             throw new Zend_Http_Client_Adapter_Exception("Error writing request to proxy server");
         }
-        
-        if(is_resource($body)) {
-            if(stream_copy_to_stream($body, $this->socket) == 0) {
-                #require_once 'Zend/Http/Client/Adapter/Exception.php';
-                throw new Zend_Http_Client_Adapter_Exception('Error writing request to server');
-            }
-        }
-        
+
         return $request;
     }
 

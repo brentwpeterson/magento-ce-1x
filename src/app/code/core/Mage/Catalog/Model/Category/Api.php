@@ -54,20 +54,9 @@ class Mage_Catalog_Model_Category_Api extends Mage_Catalog_Model_Api_Resource
         if (null !== $website) {
             try {
                 $website = Mage::app()->getWebsite($website);
-                if (null === $store) {
-                    if (null === $categoryId) {
-                        foreach ($website->getStores() as $store) {
-                            /* @var $store Mage_Core_Model_Store */
-                            $ids[] = $store->getRootCategoryId();
-                        }
-                    } else {
-                        $ids = $categoryId;
-                    }
-                } elseif (in_array($store, $website->getStoreIds())) {
-                    $storeId = Mage::app()->getStore($store)->getId();
-                    $ids = (null === $categoryId)? $store->getRootCategoryId() : $categoryId;
-                } else {
-                    $this->_fault('store_not_exists');
+                foreach ($website->getStores() as $store) {
+                    /* @var $store Mage_Core_Model_Store */
+                    $ids[] = $store->getRootCategoryId();
                 }
             } catch (Mage_Core_Exception $e) {
                 $this->_fault('website_not_exists', $e->getMessage());
@@ -92,7 +81,7 @@ class Mage_Catalog_Model_Category_Api extends Mage_Catalog_Model_Api_Resource
         }
         // load all root categories
         else {
-            $ids = (null === $categoryId)? Mage_Catalog_Model_Category::TREE_ROOT_ID : $categoryId;
+            $ids = Mage_Catalog_Model_Category::TREE_ROOT_ID;
         }
 
         $collection = Mage::getModel('catalog/category')->getCollection()
@@ -344,18 +333,30 @@ class Mage_Catalog_Model_Category_Api extends Mage_Catalog_Model_Api_Resource
         $category = $this->_initCategory($categoryId);
         $parent_category = $this->_initCategory($parentId);
 
+        $tree = Mage::getResourceModel('catalog/category_tree')
+                ->load();
+
+        $node           = $tree->getNodeById($category->getId());
+        $newParentNode  = $tree->getNodeById($parent_category->getId());
+
+        if (!$node || !$node->getId()) {
+            $this->_fault('not_exists');
+        }
+
         // if $afterId is null - move category to the down
         if ($afterId === null && $parent_category->hasChildren()) {
             $parentChildren = $parent_category->getChildren();
             $afterId = array_pop(explode(',', $parentChildren));
         }
 
-        if( strpos($parent_category->getPath(), $category->getPath()) === 0) {
-            $this->_fault('not_moved', "Operation do not allow to move a parent category to any of children category");
+        $prevNode = $tree->getNodeById($afterId);
+
+        if (!$prevNode || !$prevNode->getId()) {
+            $prevNode = null;
         }
 
         try {
-            $category->move($parentId, $afterId);
+            $tree->move($node, $newParentNode, $prevNode);
         } catch (Mage_Core_Exception $e) {
             $this->_fault('not_moved', $e->getMessage());
         }

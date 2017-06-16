@@ -41,43 +41,28 @@ class Mage_Api_Model_Server_V2_Adapter_Soap extends Mage_Api_Model_Server_Adapte
      */
     public function run()
     {
-        $apiConfigCharset = Mage::getStoreConfig("api/config/charset");
-
-        if ($this->getController()->getRequest()->getParam('wsdl') !== null) {
+        $urlModel = Mage::getModel('core/url')
+            ->setUseSession(false);
+        if ($this->getController()->getRequest()->getParam('wsdl')) {
             $wsdlConfig = Mage::getModel('api/wsdl_config');
             $wsdlConfig->setHandler($this->getHandler())
                 ->init();
             $this->getController()->getResponse()
-                ->clearHeaders()
-                ->setHeader('Content-Type','text/xml; charset='.$apiConfigCharset)
-                ->setBody(
-                      preg_replace(
-                        '/<\?xml version="([^\"]+)"([^\>]+)>/i',
-                        '<?xml version="$1" encoding="'.$apiConfigCharset.'"?>',
-                        $wsdlConfig->getWsdlContent()
-                    )
-                );
+                ->setHeader('Content-Type','text/xml')
+                ->setBody($wsdlConfig->getWsdlContent());
+        } elseif ($this->_extensionLoaded()) {
+            $this->_soap = new SoapServer($urlModel->getUrl('*/*/*', array('wsdl'=>1)));
+            use_soap_error_handler(false);
+            $this->_soap->setClass($this->getHandler());
+            $this->getController()->getResponse()
+                ->setHeader('Content-Type', 'text/xml')
+                ->setBody($this->_soap->handle());
+
         } else {
-            try {
-                $this->_instantiateServer();
-
-                $this->getController()->getResponse()
-                    ->clearHeaders()
-                    ->setHeader('Content-Type','text/xml; charset='.$apiConfigCharset)
-                    ->setBody(
-                            preg_replace(
-                                '/<\?xml version="([^\"]+)"([^\>]+)>/i',
-                                '<?xml version="$1" encoding="'.$apiConfigCharset.'"?>',
-                                $this->_soap->handle()
-                            )
-                    );
-            } catch( Zend_Soap_Server_Exception $e ) {
-                $this->fault( $e->getCode(), $e->getMessage() );
-            } catch( Exception $e ) {
-                $this->fault( $e->getCode(), $e->getMessage() );
-            }
+            $this->fault('0', 'Unable to load Soap extension on the server');
         }
-
         return $this;
     }
+
+
 }

@@ -33,56 +33,9 @@
  */
 class Mage_Sales_Model_Mysql4_Quote_Item_Option_Collection extends Mage_Core_Model_Mysql4_Collection_Abstract
 {
-    /**
-     * Array of option ids grouped by item id
-     *
-     * @var array
-     */
-    protected $_optionsByItem       = array();
-
-    /**
-     * Array of option ids grouped by product id
-     *
-     * @var array
-     */
-    protected $_optionsByProduct    = array();
-
-    /**
-     * Define resource model for collection
-     *
-     * @return void
-     */
     protected function _construct()
     {
         $this->_init('sales/quote_item_option');
-    }
-
-    /**
-     * Fill array of options by item and product
-     *
-     * @return Mage_Sales_Model_Mysql4_Quote_Item_Option_Collection
-     */
-    protected function _afterLoad()
-    {
-        parent::_afterLoad();
-
-        foreach ($this as $option) {
-            $optionId   = $option->getId();
-            $itemId     = $option->getItemId();
-            $productId  = $option->getProductId();
-            if (isset($this->_optionsByItem[$itemId])) {
-                $this->_optionsByItem[$itemId][] = $optionId;
-            } else {
-                $this->_optionsByItem[$itemId] = array($optionId);
-            }
-            if (isset($this->_optionsByProduct[$productId])) {
-                $this->_optionsByProduct[$productId][] = $optionId;
-            } else {
-                $this->_optionsByProduct[$productId] = array($optionId);
-            }
-        }
-
-        return $this;
     }
 
     /**
@@ -97,14 +50,13 @@ class Mage_Sales_Model_Mysql4_Quote_Item_Option_Collection extends Mage_Core_Mod
             $this->_totalRecords = 0;
             $this->_setIsLoaded(true);
             //$this->addFieldToFilter('item_id', '');
-        } else if (is_array($item)) {
+        } elseif (is_array($item)) {
             $this->addFieldToFilter('item_id', array('in'=>$item));
-        } else if ($item instanceof Mage_Sales_Model_Quote_Item) {
+        } elseif ($item instanceof Mage_Sales_Model_Quote_Item) {
             $this->addFieldToFilter('item_id', $item->getId());
         } else {
             $this->addFieldToFilter('item_id', $item);
         }
-
         return $this;
     }
 
@@ -115,9 +67,11 @@ class Mage_Sales_Model_Mysql4_Quote_Item_Option_Collection extends Mage_Core_Mod
      */
     public function getProductIds()
     {
-        $this->load();
-        
-        return array_keys($this->_optionsByProduct);
+        $ids = array();
+        foreach ($this as $item) {
+            $ids[] = $item->getProductId();
+        }
+        return array_unique($ids);
     }
 
     /**
@@ -130,19 +84,17 @@ class Mage_Sales_Model_Mysql4_Quote_Item_Option_Collection extends Mage_Core_Mod
     {
         if ($item instanceof Mage_Sales_Model_Quote_Item) {
             $itemId = $item->getId();
-        } else {
+        }
+        else {
             $itemId = $item;
         }
 
-        $this->load();
-
         $options = array();
-        if (isset($this->_optionsByItem[$itemId])) {
-            foreach ($this->_optionsByItem[$itemId] as $optionId) {
-                $options[] = $this->_items[$optionId];
+        foreach ($this as $option) {
+            if ($option->getItemId() == $itemId) {
+                $options[] = $option;
             }
         }
-
         return $options;
     }
 
@@ -156,19 +108,17 @@ class Mage_Sales_Model_Mysql4_Quote_Item_Option_Collection extends Mage_Core_Mod
     {
         if ($product instanceof Mage_Catalog_Model_Product) {
             $productId = $product->getId();
-        } else {
+        }
+        else {
             $productId = $product;
         }
 
-        $this->load();
-
         $options = array();
-        if (isset($this->_optionsByProduct[$productId])) {
-            foreach ($this->_optionsByProduct[$productId] as $optionId) {
-                $options[] = $this->_items[$optionId];
+        foreach ($this as $option) {
+            if ($option->getProductId() == $productId) {
+                $options[] = $option;
             }
         }
-
         return $options;
     }
 }

@@ -14,15 +14,26 @@
  *
  * @category   Zend
  * @package    Zend_Feed_Reader
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2008 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: FeedAbstract.php 22093 2010-05-04 12:55:06Z padraic $
+ * @version    $Id: FeedAbstract.php 19044 2009-11-19 16:44:24Z padraic $
  */
 
 /**
  * @see Zend_Feed_Reader
  */
 #require_once 'Zend/Feed/Reader.php';
+
+/**
+ * @see Zend_Feed_Reader_Entry_Atom
+ */
+#require_once 'Zend/Feed/Reader/Entry/Atom.php';
+
+
+/**
+ * @see Zend_Feed_Reader_Entry_Rss
+ */
+#require_once 'Zend/Feed/Reader/Entry/Rss.php';
 
 /**
  * @see Zend_feed_Reader_FeedInterface
@@ -32,7 +43,7 @@
 /**
  * @category   Zend
  * @package    Zend_Feed_Reader
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2008 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 abstract class Zend_Feed_Reader_FeedAbstract implements Zend_Feed_Reader_FeedInterface
@@ -72,19 +83,7 @@ abstract class Zend_Feed_Reader_FeedAbstract implements Zend_Feed_Reader_FeedInt
      */
     protected $_xpath = null;
 
-    /**
-     * Array of loaded extensions
-     *
-     * @var array
-     */
     protected $_extensions = array();
-
-    /**
-     * Original Source URI (set if imported from a URI)
-     *
-     * @var string
-     */
-    protected $_originalSourceUri = null;
 
     /**
      * Constructor
@@ -105,29 +104,6 @@ abstract class Zend_Feed_Reader_FeedAbstract implements Zend_Feed_Reader_FeedInt
         $this->_registerNamespaces();
         $this->_indexEntries();
         $this->_loadExtensions();
-    }
-
-    /**
-     * Set an original source URI for the feed being parsed. This value
-     * is returned from getFeedLink() method if the feed does not carry
-     * a self-referencing URI.
-     *
-     * @param string $uri
-     */
-    public function setOriginalSourceUri($uri)
-    {
-        $this->_originalSourceUri = $uri;
-    }
-
-    /**
-     * Get an original source URI for the feed being parsed. Returns null if
-     * unset or the feed was not imported from a URI.
-     *
-     * @return string|null
-     */
-    public function getOriginalSourceUri()
-    {
-        return $this->_originalSourceUri;
     }
 
     /**
@@ -249,6 +225,16 @@ abstract class Zend_Feed_Reader_FeedAbstract implements Zend_Feed_Reader_FeedInt
     public function rewind()
     {
         $this->_entriesKey = 0;
+    }
+
+    /**
+     * Return the feed as an array
+     *
+     * @return array
+     */
+    public function toArray() // untested
+    {
+        return $this->_data;
     }
 
     /**

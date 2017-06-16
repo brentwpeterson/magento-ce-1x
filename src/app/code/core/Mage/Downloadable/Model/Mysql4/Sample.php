@@ -87,21 +87,20 @@ class Mage_Downloadable_Model_Mysql4_Sample extends Mage_Core_Model_Mysql4_Abstr
      */
     public function deleteItems($items)
     {
-        $adapter = $this->_getWriteAdapter();
         $where = '';
         if ($items instanceof Mage_Downloadable_Model_Sample) {
-            $where = $adapter->quoteInto('sample_id = ?', $items->getId());
+            $where = $this->_getReadAdapter()->quoteInto('sample_id = ?', $items->getId());
         }
         elseif (is_array($items)) {
-            $where = $adapter->quoteInto('sample_id in (?)', $items);
+            $where = $this->_getReadAdapter()->quoteInto('sample_id in (?)', $items);
         }
         else {
-            $where = $adapter->quoteInto('sample_id = ?', $items);
+            $where = $this->_getReadAdapter()->quoteInto('sample_id = ?', $items);
         }
         if ($where) {
-            $adapter->delete(
+            $this->_getReadAdapter()->delete(
                 $this->getTable('downloadable/sample'),$where);
-            $adapter->delete(
+            $this->_getReadAdapter()->delete(
                 $this->getTable('downloadable/sample_title'), $where);
         }
         return $this;

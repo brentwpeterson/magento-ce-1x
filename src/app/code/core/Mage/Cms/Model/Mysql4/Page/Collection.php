@@ -36,14 +36,11 @@ class Mage_Cms_Model_Mysql4_Page_Collection extends Mage_Core_Model_Mysql4_Colle
 {
     protected $_previewFlag;
 
-    /**
-     * Declare base table and mapping of some fields
-     */
     protected function _construct()
     {
         $this->_init('cms/page');
+
         $this->_map['fields']['page_id'] = 'main_table.page_id';
-        $this->_map['fields']['store']   = 'store_table.store_id';
     }
 
     /**
@@ -122,33 +119,30 @@ class Mage_Cms_Model_Mysql4_Page_Collection extends Mage_Core_Model_Mysql4_Colle
     }
 
     /**
-     * Add filter by store
+     * Add Filter by store
      *
      * @param int|Mage_Core_Model_Store $store
      * @return Mage_Cms_Model_Mysql4_Page_Collection
      */
     public function addStoreFilter($store, $withAdmin = true)
     {
-        if ($store instanceof Mage_Core_Model_Store) {
-            $store = array($store->getId());
-        }
-        $this->addFilter('store', array('in' => ($withAdmin ? array(0, $store) : $store)), 'public');
-        return $this;
-    }
+        if (!$this->getFlag('store_filter_added')) {
+            if ($store instanceof Mage_Core_Model_Store) {
+                $store = array($store->getId());
+            }
 
-    /**
-     * Join store relation table if there is store filter
-     */
-    protected function _renderFiltersBefore()
-    {
-        if ($this->getFilter('store')) {
             $this->getSelect()->join(
                 array('store_table' => $this->getTable('cms/page_store')),
                 'main_table.page_id = store_table.page_id',
                 array()
-            )->group('main_table.page_id');
+            )
+            ->where('store_table.store_id in (?)', ($withAdmin ? array(0, $store) : $store))
+            ->group('main_table.page_id');
+
+            $this->setFlag('store_filter_added', true);
         }
-        return parent::_renderFiltersBefore();
+
+        return $this;
     }
 
     /**

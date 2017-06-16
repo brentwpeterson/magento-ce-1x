@@ -145,24 +145,15 @@ class Mage_Core_Block_Html_Select extends Mage_Core_Block_Abstract
         return $html;
     }
 
-    /**
-     * Return option HTML node
-     *
-     * @param array $option
-     * @param boolean $selected
-     * @return string
-     */
-    protected function _optionToHtml($option, $selected = false)
+    protected function _optionToHtml($option, $selected=false)
     {
         $selectedHtml = $selected ? ' selected="selected"' : '';
         if ($this->getIsRenderToJsTemplate() === true) {
             $selectedHtml .= ' #{option_extra_attr_' . self::calcOptionHash($option['value']) . '}';
         }
+        $html = '<option value="'.$this->htmlEscape($option['value']).'"'.$selectedHtml.'>'.$this->htmlEscape($option['label']).'</option>';
 
-        return sprintf('<option value="%s"%s>%s</option>',
-            $this->htmlEscape($option['value']),
-            $selectedHtml,
-            $this->htmlEscape($option['label']));
+        return $html;
     }
 
     public function getHtml()

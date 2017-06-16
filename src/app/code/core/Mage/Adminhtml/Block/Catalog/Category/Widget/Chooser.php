@@ -89,10 +89,7 @@ class Mage_Adminhtml_Block_Catalog_Category_Widget_Chooser extends Mage_Adminhtm
 
         if ($element->getValue()) {
             $value = explode('/', $element->getValue());
-            $categoryId = false;
-            if (isset($value[0]) && isset($value[1]) && $value[0] == 'category') {
-                $categoryId = $value[1];
-            }
+            $categoryId = isset($value[1]) ? $value[1] : false;
             if ($categoryId) {
                 $label = Mage::getSingleton('catalog/category')->load($categoryId)->getName();
                 $chooser->setLabel($label);

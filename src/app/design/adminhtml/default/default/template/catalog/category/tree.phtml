@@ -176,6 +176,7 @@ Ext.extend(Ext.tree.TreePanel.Enhanced, Ext.tree.TreePanel, {
         var url = parseSidUrl(baseUrl, urlExt);
 
         this.currentNodeId = node.id;
+        this.addNodeTo = false;
         if (!this.useAjax) {
             setLocation(url);
             return;
@@ -367,7 +368,8 @@ Ext.onReady(function()
         useAjax         : <?php echo $this->getUseAjax() ?>,
         switchTreeUrl   : '<?php echo $this->getSwitchTreeUrl() ?>',
         editUrl         : '<?php echo $this->getEditUrl() ?>',
-        currentNodeId   : <?php echo (int) $this->getCategoryId() ?>
+        currentNodeId   : <?php echo (int) $this->getCategoryId() ?>,
+        addNodeTo       : false//,
     };
 
     defaultLoadTreeParams = {
@@ -391,6 +393,7 @@ function addNew(url, isRoot)
     if (isRoot) {
         tree.currentNodeId = tree.root.id;
     }
+    tree.addNodeTo = tree.currentNodeId;
 
     if (/store\/\d+/.test(url)) {
         url = url.replace(/store\/\d+/, "store/" + tree.storeId);

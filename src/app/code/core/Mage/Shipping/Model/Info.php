@@ -42,9 +42,7 @@ class Mage_Shipping_Model_Info extends Varien_Object
      */
     public function loadByHash($hash)
     {
-        /* @var $helper Mage_Shipping_Helper_Data */
-        $helper = Mage::helper('shipping');
-        $data = $helper->decodeTrackingHash($hash);
+        $data = Mage::helper('shipping')->decodeTrackingHash($hash);
         if (!empty($data)) {
             $this->setData($data['key'], $data['id']);
             $this->setProtectCode($data['hash']);
@@ -93,9 +91,8 @@ class Mage_Shipping_Model_Info extends Varien_Object
      */
     protected function _initShipment()
     {
-        /* @var $model Mage_Sales_Model_Order_Shipment */
-        $model = Mage::getModel('sales/order_shipment');
-        $ship = $model->load($this->getShipId());
+        $ship = Mage::getModel('sales/order_shipment')->load($this->getShipId());
+
         if (!$ship->getEntityId() || $this->getProtectCode() != $ship->getProtectCode()) {
             return false;
         }

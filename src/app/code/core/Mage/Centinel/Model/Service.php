@@ -250,9 +250,6 @@ class Mage_Centinel_Model_Service extends Varien_Object
         $api = $this->_getApi();
         $result = $api->callAuthentication($data);
         $validationState->setAuthenticateResult($result);
-        if (!$validationState->isAuthenticateSuccessful()) {
-            $this->reset();
-        }
     }
 
     /**
@@ -292,7 +289,7 @@ class Mage_Centinel_Model_Service extends Varien_Object
             }
             Mage::throwException(Mage::helper('centinel')->__('Please verify the card with the issuer bank before placing the order.'));
         } else {
-            if ($validationState->getChecksum() != $newChecksum || !$validationState->isLookupSuccessful()) {
+            if ($validationState->getChecksum() != $newChecksum) {
                 $this->lookup($data);
                 $validationState = $this->_getValidationState();
             }
@@ -305,7 +302,7 @@ class Mage_Centinel_Model_Service extends Varien_Object
 
     /**
      * Reset validation state and drop api object
-     *
+     * 
      * @return Mage_Centinel_Model_Service
      */
     public function reset()

@@ -15,8 +15,8 @@
  * @category   Zend
  * @package    Zend_Controller
  * @subpackage Router
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
- * @version    $Id: Rewrite.php 22417 2010-06-11 14:15:05Z rob $
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
+ * @version    $Id: Rewrite.php 18951 2009-11-12 16:26:19Z alexander $
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 
@@ -31,7 +31,7 @@
  *
  * @package    Zend_Controller
  * @subpackage Router
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  * @see        http://manuals.rubyonrails.com/read/chapter/65
  */
@@ -72,14 +72,6 @@ class Zend_Controller_Router_Rewrite extends Zend_Controller_Router_Abstract
      * @var string
      */
     protected $_chainNameSeparator = '-';
-
-    /**
-     * Determines if request parameters should be used as global parameters
-     * inside this router.
-     *
-     * @var boolean
-     */
-    protected $_useCurrentParamsAsGlobal = false;
 
     /**
      * Add default routes which are used to mimic basic router behaviour
@@ -380,8 +372,6 @@ class Zend_Controller_Router_Rewrite extends Zend_Controller_Router_Abstract
         }
 
         // Find the matching route
-        $routeMatched = false;
-        
         foreach (array_reverse($this->_routes) as $name => $route) {
             // TODO: Should be an interface method. Hack for 1.0 BC
             if (method_exists($route, 'isAbstract') && $route->isAbstract()) {
@@ -398,20 +388,7 @@ class Zend_Controller_Router_Rewrite extends Zend_Controller_Router_Abstract
             if ($params = $route->match($match)) {
                 $this->_setRequestParams($request, $params);
                 $this->_currentRoute = $name;
-                $routeMatched        = true;
                 break;
-            }
-        }
-
-         if (!$routeMatched) {
-             #require_once 'Zend/Controller/Router/Exception.php';
-             throw new Zend_Controller_Router_Exception('No route matched the request', 404);
-         }
-
-        if($this->_useCurrentParamsAsGlobal) {
-            $params = $request->getParams();
-            foreach($params as $param => $value) {
-                $this->setGlobalParam($param, $value);
             }
         }
 
@@ -458,8 +435,7 @@ class Zend_Controller_Router_Rewrite extends Zend_Controller_Router_Abstract
             }
         }
 
-        // Use UNION (+) in order to preserve numeric keys 
-        $params = $userParams + $this->_globalParams;
+        $params = array_merge($this->_globalParams, $userParams);
 
         $route = $this->getRoute($name);
         $url   = $route->assemble($params, $reset, $encode);
@@ -488,7 +464,7 @@ class Zend_Controller_Router_Rewrite extends Zend_Controller_Router_Abstract
     /**
      * Set the separator to use with chain names
      *
-     * @param string $separator The separator to use
+     * @param  string $separator The separator to use
      * @return Zend_Controller_Router_Rewrite
      */
     public function setChainNameSeparator($separator) {
@@ -504,26 +480,5 @@ class Zend_Controller_Router_Rewrite extends Zend_Controller_Router_Abstract
      */
     public function getChainNameSeparator() {
         return $this->_chainNameSeparator;
-    }
-
-    /**
-     * Determines/returns whether to use the request parameters as global parameters.
-     *
-     * @param boolean|null $use
-     *           Null/unset when you want to retrieve the current state.
-     *           True when request parameters should be global, false otherwise
-     * @return boolean|Zend_Controller_Router_Rewrite
-     *              Returns a boolean if first param isn't set, returns an
-     *              instance of Zend_Controller_Router_Rewrite otherwise.
-     *
-     */
-    public function useRequestParametersAsGlobal($use = null) {
-        if($use === null) {
-            return $this->_useCurrentParamsAsGlobal;
-        }
-
-        $this->_useCurrentParamsAsGlobal = (bool) $use;
-
-        return $this;
     }
 }

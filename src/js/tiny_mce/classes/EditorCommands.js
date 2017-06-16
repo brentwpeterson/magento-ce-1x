@@ -155,7 +155,7 @@
 				}
 
 				// Present alert message about clipboard access not being available
-				if (failed || !doc.queryCommandSupported(command)) {
+				if (failed || !doc.queryCommandEnabled(command)) {
 					if (tinymce.isGecko) {
 						editor.windowManager.confirm(editor.getLang('clipboard_msg'), function(state) {
 							if (state)
@@ -250,18 +250,16 @@
 			},
 
 			mceCleanup : function() {
-				var bookmark = selection.getBookmark();
-
+				storeSelection();
 				editor.setContent(editor.getContent({cleanup : TRUE}), {cleanup : TRUE});
-
-				selection.moveToBookmark(bookmark);
+				restoreSelection();
 			},
 
 			mceRemoveNode : function(command, ui, value) {
 				var node = value || selection.getNode();
 
 				// Make sure that the body node isn't removed
-				if (node != editor.getBody()) {
+				if (node != ed.getBody()) {
 					storeSelection();
 					editor.dom.remove(node, TRUE);
 					restoreSelection();
@@ -366,16 +364,8 @@
 					if (value.href)
 						dom.setAttribs(link, value);
 					else
-						editor.dom.remove(link, TRUE);
+						ed.dom.remove(link, TRUE);
 				}
-			},
-			
-			selectAll : function() {
-				var root = dom.getRoot();
-				var rng = dom.createRng();
-				rng.setStart(root, 0);
-				rng.setEnd(root, root.childNodes.length);
-				editor.selection.setRng(rng);
 			}
 		});
 

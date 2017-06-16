@@ -292,7 +292,6 @@ class Varien_Data_Collection_Db extends Varien_Data_Collection
      */
     private function _setOrder($field, $direction, $unshift = false)
     {
-        $field = $this->_getMappedField($field);
         $direction = (strtoupper($direction) == self::SORT_ORDER_ASC) ? self::SORT_ORDER_ASC : self::SORT_ORDER_DESC;
         // emulate associative unshift
         if ($unshift) {
@@ -321,8 +320,6 @@ class Varien_Data_Collection_Db extends Varien_Data_Collection
             return $this;
         }
 
-        $this->_renderFiltersBefore();
-
         foreach ($this->_filters as $filter) {
             switch ($filter['type']) {
                 case 'or' :
@@ -332,13 +329,6 @@ class Varien_Data_Collection_Db extends Varien_Data_Collection
                 case 'string' :
                     $this->_select->where($filter['value']);
                     break;
-                case 'public':
-                    $field = $this->_getMappedField($filter['field']);
-                    $condition = $filter['value'];
-                    $this->_select->where(
-                        $this->_getConditionSql($field, $condition), null, Varien_Db_Select::TYPE_CONDITION
-                    );
-                    break;
                 default:
                     $condition = $this->_conn->quoteInto($filter['field'].'=?', $filter['value']);
                     $this->_select->where($condition);
@@ -346,13 +336,6 @@ class Varien_Data_Collection_Db extends Varien_Data_Collection
         }
         $this->_isFiltersRendered = true;
         return $this;
-    }
-
-    /**
-     * Hook for operations before rendering filters
-     */
-    protected function _renderFiltersBefore()
-    {
     }
 
     /**
@@ -366,7 +349,7 @@ class Varien_Data_Collection_Db extends Varien_Data_Collection
     public function addFieldToFilter($field, $condition=null)
     {
         $field = $this->_getMappedField($field);
-        $this->_select->where($this->_getConditionSql($field, $condition), null, Varien_Db_Select::TYPE_CONDITION);
+        $this->_select->where($this->_getConditionSql($field, $condition));
         return $this;
     }
 

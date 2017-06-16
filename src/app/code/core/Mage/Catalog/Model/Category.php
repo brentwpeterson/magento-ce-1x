@@ -96,11 +96,11 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
      */
     private $_designAttributes  = array(
         'custom_design',
+        'custom_design_apply',
         'custom_design_from',
         'custom_design_to',
         'page_layout',
-        'custom_layout_update',
-        'custom_apply_to_products'
+        'custom_layout_update'
     );
 
     /**
@@ -183,11 +183,6 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
     public function move($parentId, $afterCategoryId)
     {
         /**
-         * Setting affected category ids for third party engine index refresh
-        */
-        $this->setMovedCategoryId($this->getId());
-
-        /**
          * Validate new parent category id. (category model is used for backward
          * compatibility in event params)
          */
@@ -225,9 +220,7 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
             Mage::dispatchEvent('catalog_category_tree_move_after', $eventParams);
             $this->_getResource()->commit();
 
-            // Set data for indexer
             $this->setAffectedCategoryIds(array($this->getId(), $this->getParentId(), $parentId));
-
             $moveComplete = true;
         } catch (Exception $e) {
             $this->_getResource()->rollBack();
@@ -414,7 +407,6 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
 
             if ($this->hasData('request_path') && $this->getRequestPath() != '') {
                 $this->setData('url', $this->getUrlInstance()->getDirectUrl($this->getRequestPath()));
-                Varien_Profiler::stop('REWRITE: '.__METHOD__);
                 return $this->getData('url');
             }
 
@@ -494,8 +486,7 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
      */
     public function getUrlPath()
     {
-        $path = $this->getData('url_path');
-        if ($path) {
+        if ($path = $this->getData('url_path')) {
             return $path;
         }
 
@@ -518,10 +509,7 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
      */
     public function getParentCategory()
     {
-        if (!$this->hasData('parent_category')) {
-            $this->setData('parent_category', Mage::getModel('catalog/category')->load($this->getParentId()));
-        }
-        return $this->_getData('parent_category');
+        return Mage::getModel('catalog/category')->load($this->getParentId());
     }
 
     /**
@@ -594,7 +582,7 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
     /**
      * Get all children categories IDs
      *
-     * @param boolean $asArray return result as array instead of comma-separated list of IDs
+     * @param boolean $asArray return resul as array instead of comma-separated list of IDs
      * @return array|string
      */
     public function getAllChildren($asArray = false)
@@ -829,16 +817,6 @@ class Mage_Catalog_Model_Category extends Mage_Catalog_Model_Abstract
     public function getChildrenCategories()
     {
         return $this->getResource()->getChildrenCategories($this);
-    }
-
-    /**
-     * Return parent category of current category with own custom design settings
-     *
-     * @return Mage_Catalog_Model_Category
-     */
-    public function getParentDesignCategory()
-    {
-        return $this->getResource()->getParentDesignCategory($this);
     }
 
     /**

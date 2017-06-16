@@ -254,8 +254,7 @@ class Mage_Tag_Model_Mysql4_Customer_Collection extends Mage_Customer_Model_Enti
 
     public function addFieldToFilter($attribute, $condition=null){
         if ($attribute == 'name') {
-            $where = $this->_getConditionSql('t.name', $condition);
-            $this->getSelect()->where($where, null, Varien_Db_Select::TYPE_CONDITION);
+            $this->getSelect()->where($this->_getConditionSql('t.name', $condition));
             return $this;
         } else {
             return parent::addFieldToFilter($attribute, $condition);

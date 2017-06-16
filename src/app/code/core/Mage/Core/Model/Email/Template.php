@@ -42,8 +42,14 @@
  * @package    Mage_Core
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
+class Mage_Core_Model_Email_Template extends Mage_Core_Model_Abstract
 {
+    /**
+     * Types of template
+     */
+    const TYPE_TEXT = 1;
+    const TYPE_HTML = 2;
+
     /**
      * Configuration path for default email templates
      *
@@ -57,6 +63,13 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
     protected $_mail;
 
     static protected $_defaultTemplates;
+
+    /**
+     * Configuration of desing package for template
+     *
+     * @var Varien_Object
+     */
+    protected $_designConfig;
 
     /**
      * Initialize email template model
@@ -239,12 +252,13 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
     }
 
     /**
-     * Getter for template type
+     * Return true if template type eq text
      *
-     * @return int|string
+     * @return boolean
      */
-    public function getType(){
-        return $this->getTemplateType();
+    public function isPlain()
+    {
+        return $this->getTemplateType() == self::TYPE_TEXT;
     }
 
     /**
@@ -261,10 +275,6 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
 
         if(!$this->_preprocessFlag) {
             $variables['this'] = $this;
-        }
-
-        if(isset($variables['subscriber']) && ($variables['subscriber'] instanceof Mage_Newsletter_Model_Subscriber)) {
-            $processor->setStoreId($variables['subscriber']->getStoreId());
         }
 
         $processor->setIncludeProcessor(array($this, 'getInclude'))
@@ -317,9 +327,9 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
     /**
      * Send mail to recipient
      *
-     * @param   array|string       $email        E-mail(s)
-     * @param   array|string|null  $name         receiver name(s)
-     * @param   array              $variables    template variables
+     * @param   string      $email		  E-mail
+     * @param   string|null $name         receiver name
+     * @param   array       $variables    template variables
      * @return  boolean
      **/
     public function send($email, $name = null, array $variables = array())
@@ -329,17 +339,12 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
             return false;
         }
 
-        $emails = array_values((array)$email);
-        $names = is_array($name) ? $name : (array)$name;
-        $names = array_values($names);
-        foreach ($emails as $key => $email) {
-            if (!isset($names[$key])) {
-                $names[$key] = substr($email, 0, strpos($email, '@'));
-            }
+        if (is_null($name)) {
+            $name = substr($email, 0, strpos($email, '@'));
         }
 
-        $variables['email'] = reset($emails);
-        $variables['name'] = reset($names);
+        $variables['email'] = $email;
+        $variables['name'] = $name;
 
         ini_set('SMTP', Mage::getStoreConfig('system/smtp/host'));
         ini_set('smtp_port', Mage::getStoreConfig('system/smtp/port'));
@@ -360,12 +365,15 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
         }
 
         if ($returnPathEmail !== null) {
-            $mailTransport = new Zend_Mail_Transport_Sendmail($returnPathEmail);
-            Zend_Mail::setDefaultTransport($mailTransport);
+            $mail->setReturnPath($returnPathEmail);
         }
 
-        foreach ($emails as $key => $email) {
-            $mail->addTo($email, '=?utf-8?B?' . base64_encode($names[$key]) . '?=');
+        if (is_array($email)) {
+            foreach ($email as $emailOne) {
+                $mail->addTo($emailOne, $name);
+            }
+        } else {
+            $mail->addTo($email, '=?utf-8?B?'.base64_encode($name).'?=');
         }
 
         $this->setUseAbsoluteLinks(true);
@@ -377,7 +385,7 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
             $mail->setBodyHTML($text);
         }
 
-        $mail->setSubject('=?utf-8?B?' . base64_encode($this->getProcessedTemplateSubject($variables)) . '?=');
+        $mail->setSubject('=?utf-8?B?'.base64_encode($this->getProcessedTemplateSubject($variables)).'?=');
         $mail->setFrom($this->getSenderEmail(), $this->getSenderName());
 
         try {
@@ -466,6 +474,81 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
         return $processedResult;
     }
 
+    /**
+     * Initialize design information for email template and subject processing
+     *
+     * @param   array $config
+     * @return  Mage_Core_Model_Email_Template
+     */
+    public function setDesignConfig(array $config)
+    {
+        $this->getDesignConfig()->setData($config);
+        return $this;
+    }
+
+    /**
+     * Get design configuration data
+     *
+     * @return Varien_Object
+     */
+    public function getDesignConfig()
+    {
+        if(is_null($this->_designConfig)) {
+            $this->_designConfig = new Varien_Object();
+        }
+        return $this->_designConfig;
+    }
+
+    /**
+     * Apply declared configuration for design
+     *
+     * @return Mage_Core_Model_Email_Template
+     */
+    protected function _applyDesignConfig()
+    {
+        if ($this->getDesignConfig()) {
+            $design = Mage::getDesign();
+            $this->getDesignConfig()
+                ->setOldArea($design->getArea())
+                ->setOldStore($design->getStore());
+
+            if ($this->getDesignConfig()->getArea()) {
+                Mage::getDesign()->setArea($this->getDesignConfig()->getArea());
+            }
+
+            if ($this->getDesignConfig()->getStore()) {
+                Mage::app()->getLocale()->emulate($this->getDesignConfig()->getStore());
+                $design->setStore($this->getDesignConfig()->getStore());
+                $design->setTheme('');
+                $design->setPackageName('');
+            }
+
+        }
+        return $this;
+    }
+
+    /**
+     * Revert design settings to previous
+     *
+     * @return Mage_Core_Model_Email_Template
+     */
+    protected function _cancelDesignConfig()
+    {
+        if ($this->getDesignConfig()) {
+            if ($this->getDesignConfig()->getOldArea()) {
+                Mage::getDesign()->setArea($this->getDesignConfig()->getOldArea());
+            }
+
+            if ($this->getDesignConfig()->getOldStore()) {
+                Mage::getDesign()->setStore($this->getDesignConfig()->getOldStore());
+                Mage::getDesign()->setTheme('');
+                Mage::getDesign()->setPackageName('');
+            }
+        }
+        Mage::app()->getLocale()->revert();
+        return $this;
+    }
+
     public function addBcc($bcc)
     {
         if (is_array($bcc)) {
@@ -499,7 +582,7 @@ class Mage_Core_Model_Email_Template extends Mage_Core_Model_Template
      */
     public function setReplyTo($email)
     {
-        $this->getMail()->setReplyTo($email);
+        $this->getMail()->addHeader('Reply-To', $email);
         return $this;
     }
 

@@ -128,29 +128,7 @@ abstract class Mage_Centinel_Model_StateAbstract extends Varien_Object
      *
      * @return bool
      */
-    final public function isLookupSuccessful()
-    {
-        if ($this->_isLookupStrictSuccessful()) {
-            return true;
-        } elseif (!$this->getIsModeStrict() && $this->_isLookupSoftSuccessful()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Analyse lookup`s results. If lookup is strict successful return true
-     *
-     * @return bool
-     */
-    abstract protected function _isLookupStrictSuccessful();
-
-    /**
-     * Analyse lookup`s results. If lookup is soft successful return true
-     *
-     * @return bool
-     */
-    abstract protected function _isLookupSoftSuccessful();
+    abstract public function isLookupSuccessful();
 
     /**
      * Analyse lookup`s results. If it has require params for authenticate, return true

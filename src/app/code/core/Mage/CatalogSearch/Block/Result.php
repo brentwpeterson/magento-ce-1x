@@ -81,16 +81,6 @@ class Mage_CatalogSearch_Block_Result extends Mage_Core_Block_Template
     }
 
     /**
-     * Retrieve additional blocks html
-     *
-     * @return string
-     */
-    public function getAdditionalHtml()
-    {
-        return $this->getLayout()->getBlock('search_result_list')->getChildHtml('additional');
-    }
-
-    /**
      * Retrieve search list toolbar block
      *
      * @return Mage_Catalog_Block_Product_List
@@ -105,8 +95,7 @@ class Mage_CatalogSearch_Block_Result extends Mage_Core_Block_Template
      *
      * @return Mage_CatalogSearch_Block_Result
      */
-    public function setListOrders()
-    {
+    public function setListOrders() {
         $category = Mage::getSingleton('catalog/layer')
             ->getCurrentCategory();
         /* @var $category Mage_Catalog_Model_Category */
@@ -129,8 +118,7 @@ class Mage_CatalogSearch_Block_Result extends Mage_Core_Block_Template
      *
      * @return Mage_CatalogSearch_Block_Result
      */
-    public function setListModes()
-    {
+    public function setListModes() {
         $this->getListBlock()
             ->setModes(array(
                 'grid' => $this->__('Grid'),
@@ -144,10 +132,9 @@ class Mage_CatalogSearch_Block_Result extends Mage_Core_Block_Template
      *
      * @return Mage_CatalogSearch_Block_Result
      */
-    public function setListCollection()
-    {
-//        $this->getListBlock()
-//           ->setCollection($this->_getProductCollection());
+    public function setListCollection() {
+        $this->getListBlock()
+           ->setCollection($this->_getProductCollection());
        return $this;
     }
 
@@ -169,7 +156,7 @@ class Mage_CatalogSearch_Block_Result extends Mage_Core_Block_Template
     protected function _getProductCollection()
     {
         if (is_null($this->_productCollection)) {
-            $this->_productCollection = $this->getListBlock()->getLoadedProductCollection();
+            $this->_productCollection = Mage::getSingleton('catalogsearch/layer')->getProductCollection();
         }
 
         return $this->_productCollection;

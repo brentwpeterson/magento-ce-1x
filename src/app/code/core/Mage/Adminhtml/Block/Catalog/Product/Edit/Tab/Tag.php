@@ -89,7 +89,7 @@ class Mage_Adminhtml_Block_Catalog_Product_Edit_Tab_Tag extends Mage_Adminhtml_B
         return parent::_prepareColumns();
     }
 
-    public function getRowUrl($row)
+    protected function getRowUrl($row)
     {
         return $this->getUrl('*/tag/edit', array(
             'tag_id'        => $row->getId(),

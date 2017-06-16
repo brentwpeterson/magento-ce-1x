@@ -130,6 +130,7 @@ class Mage_Adminhtml_System_Convert_GuiController extends Mage_Adminhtml_System_
         }
         $this->_initProfile();
         $profile = Mage::registry('current_convert_profile');
+
     }
 
     protected function _isAllowed()

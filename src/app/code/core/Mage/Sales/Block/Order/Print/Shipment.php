@@ -34,42 +34,10 @@
 
 class Mage_Sales_Block_Order_Print_Shipment extends Mage_Sales_Block_Items_Abstract
 {
-    /**
-     * Tracks for Shippings
-     * 
-     * @var array 
-     */
-    protected $_tracks = array();
 
-     /**
-     * Order shipments collection
-     *
-     * @var array|Mage_Sales_Model_Mysql4_Order_Shipment_Collection
-     */
-    protected $_shipmentsCollection;
-
-    /**
-     * Load all tracks and save it to local cache by shipments
-     *
-     * @return Mage_Sales_Block_Order_Print_Shipment
-     */
-    protected function _beforeToHtml()
+    public function __construct()
     {
-        $tracksCollection = $this->getOrder()->getTracksCollection();
-
-        foreach($tracksCollection->getItems() as $track) {
-            $shipmentId = $track->getParentId();
-            $this->_tracks[$shipmentId][] = $track;
-        }
-
-        $shipment = Mage::registry('current_shipment');
-        if($shipment) {
-            $this->_shipmentsCollection = array($shipment);
-        } else {
-            $this->_shipmentsCollection = $this->getOrder()->getShipmentsCollection();
-        }
-
-        return parent::_beforeToHtml();
+        parent::__construct();
     }
 
     protected function _prepareLayout()
@@ -113,74 +81,6 @@ class Mage_Sales_Block_Order_Print_Shipment extends Mage_Sales_Block_Items_Abstr
         $renderer->setPrintStatus(true);
 
         return parent::_prepareItem($renderer);
-    }
-
-     /**
-     * Retrieve order shipments collection
-     *
-     * @return array|Mage_Sales_Model_Mysql4_Order_Shipment_Collection
-     */
-    public function getShipmentsCollection()
-    {
-        return $this->_shipmentsCollection;
-    }
-
-    /**
-     * Getter for order tracking numbers collection per shipment
-     *
-     * @param Mage_Sales_Model_Order_Shipment $shipment
-     * @return array
-     */
-    public function getShipmentTracks($shipment)
-    {
-        return $this->_tracks[$shipment->getId()];
-    }
-
-    /**
-     * Getter for shipment address by format
-     *
-     * @param Mage_Sales_Model_Order_Shipment $shipment
-     * @return string
-     */
-    public function getShipmentAddressFormattedHtml($shipment)
-    {
-        $shippingAddress = $shipment->getShippingAddress();
-        if(!($shippingAddress instanceof Mage_Sales_Model_Order_Address)) {
-            return '';
-        }
-        return $shippingAddress->format('html');
-    }
-
-    /**
-     * Getter for billing address of order by format
-     *
-     * @param Mage_Sales_Model_Order $order
-     * @return string
-     */
-    public function getBillingAddressFormattedHtml($order)
-    {
-        $billingAddress = $order->getBillingAddress();
-        if(!($billingAddress instanceof Mage_Sales_Model_Order_Address)) {
-            return '';
-        }
-        return $billingAddress->format('html');
-    }
-
-    /**
-     * Getter for billing address of order by format
-     *
-     * @param Mage_Sales_Model_Order_Shipment $shipment
-     * @return array
-     */
-    public function getShipmentItems($shipment)
-    {
-        $res = array();
-        foreach ($shipment->getItemsCollection() as $item) {
-            if (!$item->getOrderItem()->getParentItem()) {
-                $res[] = $item;
-            }
-        }
-        return $res;
     }
 }
 

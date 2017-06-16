@@ -53,12 +53,12 @@ class Mage_CatalogSearch_Model_Fulltext extends Mage_Core_Model_Abstract
      * (null, 2)    => Regenerate index for all store views of product Id=2
      *
      * @param int $storeId Store View Id
-     * @param int | array $productId Product Entity Id
+     * @param int $productId Product Entity Id
      * @return Mage_CatalogSearch_Model_Fulltext
      */
-    public function rebuildIndex($storeId = null, $productIds = null)
+    public function rebuildIndex($storeId = null, $productId = null)
     {
-        $this->getResource()->rebuildIndex($storeId, $productIds);
+        $this->getResource()->rebuildIndex($storeId, $productId);
         return $this;
     }
 
@@ -120,18 +120,5 @@ class Mage_CatalogSearch_Model_Fulltext extends Mage_Core_Model_Abstract
     public function getSearchType($storeId = null)
     {
         return Mage::getStoreConfig(self::XML_PATH_CATALOG_SEARCH_TYPE, $storeId);
-    }
-
-    /**
-     * Update category'es products indexes
-     *
-     * @param array $productIds
-     * @param array $categoryIds
-     * @return Mage_CatalogSearch_Model_Fulltext
-     */
-    public function updateCategoryIndex($productIds, $categoryIds)
-    {
-        $this->getResource()->updateCategoryIndex($productIds, $categoryIds);
-        return $this;
     }
 }

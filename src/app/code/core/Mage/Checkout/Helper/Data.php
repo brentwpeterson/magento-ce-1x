@@ -187,7 +187,7 @@ class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
         }
 
         $items = '';
-        foreach ($checkout->getAllVisibleItems() as $_item) {
+        foreach ($checkout->getItemsCollection() as $_item) {
             /* @var $_item Mage_Sales_Model_Quote_Item */
             $items .= $_item->getProduct()->getName() . '  x '. $_item->getQty() . '  '
                     . $checkout->getStoreCurrencyCode() . ' ' . $_item->getProduct()->getFinalPrice($_item->getQty()) . "\n";

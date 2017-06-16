@@ -383,34 +383,32 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
         }
 
         $request = $xml->asXML();
-        $responseBody = $this->_getCachedQuotes($request);
-        if ($responseBody === null) {
-            $debugData = array('request' => $request);
-            try {
-                $url = $this->getConfigData('gateway_url');
-                if (!$url) {
-                    $url = $this->_defaultGatewayUrl;
-                }
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_URL, $url);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $request);
-                $responseBody = curl_exec($ch);
-                curl_close ($ch);
+        $debugData = array('request' => $request);
 
-                $debugData['result'] = $responseBody;
-                $this->_setCachedQuotes($request, $responseBody);
+        try {
+            $url = $this->getConfigData('gateway_url');
+            if (!$url) {
+                $url = $this->_defaultGatewayUrl;
             }
-            catch (Exception $e) {
-                $debugData['result'] = array('error' => $e->getMessage(), 'code' => $e->getCode());
-                $responseBody = '';
-            }
-            $this->_debug($debugData);
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $request);
+            $responseBody = curl_exec($ch);
+            $debugData['result'] = $responseBody;
+            curl_close ($ch);
+        }
+        catch (Exception $e) {
+            $debugData['result'] = array('error' => $e->getMessage(), 'code' => $e->getCode());
+            $responseBody = '';
         }
 
-        return $this->_parseXmlResponse($responseBody);
+        $this->_debug($debugData);
+        $res = $this->_parseXmlResponse($responseBody);
+
+        return $res;
     }
 
     protected function _createShipmentXml($shipment,$shipKey)

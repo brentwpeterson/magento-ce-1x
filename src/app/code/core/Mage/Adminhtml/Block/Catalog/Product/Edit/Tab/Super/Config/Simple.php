@@ -33,19 +33,11 @@
  */
 class Mage_Adminhtml_Block_Catalog_Product_Edit_Tab_Super_Config_Simple extends Mage_Adminhtml_Block_Catalog_Product_Edit_Tab_Attributes
 {
-    /**
-     * Link to currently editing product
-     *
-     * @var Mage_Catalog_Model_Product
-     */
-    protected $_product = null;
-
     protected function _prepareForm()
     {
         $form = new Varien_Data_Form();
 
         $form->setFieldNameSuffix('simple_product');
-        $form->setDataObject($this->_getProduct());
 
         $fieldset = $form->addFieldset('simple_product', array(
             'legend' => Mage::helper('catalog')->__('Quick simple product creation')
@@ -187,9 +179,6 @@ class Mage_Adminhtml_Block_Catalog_Product_Edit_Tab_Super_Config_Simple extends 
      */
     protected function _getProduct()
     {
-        if (!$this->_product) {
-            $this->_product = Mage::registry('current_product');
-        }
-        return $this->_product;
+        return Mage::registry('current_product');
     }
 } // Class Mage_Adminhtml_Block_Catalog_Product_Edit_Tab_Super_Config_Simple End

@@ -97,17 +97,4 @@ class Mage_Catalog_Block_Product_Price extends Mage_Core_Block_Template
 
         return $res;
     }
-
-    /**
-     * Prevent displaying if the price is not available
-     *
-     * @return string
-     */
-    protected function _toHtml()
-    {
-        if (!$this->getProduct() || $this->getProduct()->getCanShowPrice() === false) {
-            return '';
-        }
-        return parent::_toHtml();
-    }
 }

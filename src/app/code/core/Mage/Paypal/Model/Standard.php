@@ -123,7 +123,6 @@ class Mage_Paypal_Model_Standard extends Mage_Payment_Model_Method_Abstract
         $api->setOrderId($orderIncrementId)
             ->setCurrencyCode($order->getBaseCurrencyCode())
             //->setPaymentAction()
-            ->setOrder($order)
             ->setNotifyUrl(Mage::getUrl('paypal/ipn/'))
             ->setReturnUrl(Mage::getUrl('paypal/standard/success'))
             ->setCancelUrl(Mage::getUrl('paypal/standard/cancel'));
@@ -133,16 +132,24 @@ class Mage_Paypal_Model_Standard extends Mage_Payment_Model_Method_Abstract
         $address = $isOrderVirtual ? $order->getBillingAddress() : $order->getShippingAddress();
         if ($isOrderVirtual) {
             $api->setNoShipping(true);
-        } elseif ($address->validate()) {
+        }
+        elseif ($address->getEmail()) {
             $api->setAddress($address);
         }
 
-        // add cart totals and line items
-        $api->setPaypalCart(Mage::getModel('paypal/cart', array($order)))
-            ->setIsLineItemsEnabled($this->_config->lineItemsEnabled)
-        ;
-        if (!$this->_config->lineItemsEnabled) {
-            $api->setCartSummary($this->_getAggregatedCartSummary());
+        list($items, $totals, $discountAmount, $shippingAmount) = Mage::helper('paypal')->prepareLineItems($order, false, true);
+        // prepare line items if required in config
+        if ($this->_config->lineItemsEnabled) {
+            $api->setLineItems($items)->setLineItemTotals($totals)->setDiscountAmount($discountAmount);
+        }
+        // or values specific for aggregated order
+        else {
+            $grandTotal = $order->getBaseGrandTotal();
+            if (!$isOrderVirtual) {
+                $api->setShippingAmount($shippingAmount);
+                $grandTotal -= $shippingAmount;
+            }
+            $api->setAmount($grandTotal)->setCartSummary($this->_getAggregatedCartSummary());
         }
 
         $result = $api->getStandardCheckoutRequest();

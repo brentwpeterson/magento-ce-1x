@@ -15,14 +15,11 @@
  * @category   Zend
  * @package    Zend_Service_Amazon
  * @subpackage Ec2
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: CloudWatch.php 20096 2010-01-06 02:05:09Z bkarwin $
+ * @version    $Id: CloudWatch.php 19067 2009-11-19 22:13:54Z sidhighwind $
  */
 
-/**
- * @see Zend_Service_Amazon_Ec2_Abstract
- */
 #require_once 'Zend/Service/Amazon/Ec2/Abstract.php';
 
 /**
@@ -32,7 +29,7 @@
  * @category   Zend
  * @package    Zend_Service_Amazon
  * @subpackage Ec2
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Service_Amazon_Ec2_CloudWatch extends Zend_Service_Amazon_Ec2_Abstract

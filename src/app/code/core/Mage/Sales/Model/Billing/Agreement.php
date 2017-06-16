@@ -128,14 +128,13 @@ class Mage_Sales_Model_Billing_Agreement extends Mage_Payment_Model_Billing_Agre
     {
         $this->verifyToken();
 
-        $paymentMethodInstance = $this->getPaymentMethodInstance()
+        $this->getPaymentMethodInstance()
             ->placeBillingAgreement($this);
 
         $this->setCustomerId($this->getCustomer()->getId())
             ->setMethodCode($this->getMethodCode())
             ->setReferenceId($this->getBillingAgreementId())
             ->setStatus(self::STATUS_ACTIVE)
-            ->setAgreementLabel($paymentMethodInstance->getTitle())
             ->save();
         return $this;
     }

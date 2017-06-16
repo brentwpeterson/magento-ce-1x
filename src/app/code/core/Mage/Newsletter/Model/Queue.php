@@ -29,9 +29,9 @@
  *
  * @category   Mage
  * @package    Mage_Newsletter
- * @author     Magento Core Team <core@magentocommerce.com>
+ * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
+class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Abstract
 {
     /**
      * Newsletter Template object
@@ -46,27 +46,17 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
      */
     protected $_subscribersCollection = null;
 
-    /**
-     * save template flag
-     * 
-     * @var boolean
-     * @deprecated since 1.4.0.1 
-     */
     protected $_saveTemplateFlag = false;
 
-    /**
-     * Save stores flag.
-     * 
-     * @var boolean
-     */
     protected $_saveStoresFlag = false;
 
+    protected $_stores = false;
+
     /**
-     * Stores assigned to queue.
-     * 
-     * @var array
+     * Design changes object instance
+     * @var Varien_Object
      */
-    protected $_stores = array();
+    protected $_designConfig;
 
     const STATUS_NEVER = 0;
     const STATUS_SENDING = 1;
@@ -75,21 +65,13 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
     const STATUS_PAUSE = 4;
 
     /**
-     * Initialize resource model
+     * Default design area for emulation
      */
+    const DEFAULT_DESIGN_AREA = 'frontend';
+
     protected function _construct()
     {
         $this->_init('newsletter/queue');
-    }
-
-    /**
-     * Return: is this queue newly created or not.
-     *
-     * @return boolean
-     */
-    public function isNew()
-    {
-        return (is_null($this->getQueueStatus()));
     }
 
     /**
@@ -110,11 +92,11 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
     /**
      * Add template data to queue.
      *
+     * @deprecated
      * @param Varien_Object $data
      * @return Mage_Newsletter_Model_Queue
-     * @deprecated since 1.4.0.1
      */
-    public function addTemplateData($data)
+    public function addTemplateData( $data )
     {
         $template = $this->getTemplate();
         if ($data->getTemplateId() && $data->getTemplateId() != $template->getId()) {
@@ -125,30 +107,10 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
     }
 
     /**
-     * Set $_data['queue_start'] based on string from backend, which based on locale.
-     * 
-     * @param string|null $startAt start date of the mailing queue
-     * @return Mage_Newsletter_Model_Queue
-     */
-    public function setQueueStartAtByString($startAt)
-    {
-        if(is_null($startAt) || $startAt == '') {
-            $this->setQueueStartAt(null);
-        } else {
-            $locale = Mage::app()->getLocale();
-            $format = $locale->getDateTimeFormat(Mage_Core_Model_Locale::FORMAT_TYPE_MEDIUM);
-            $time = $locale->date($startAt, $format)->getTimestamp();
-            $this->setQueueStartAt(Mage::getModel('core/date')->gmtDate(null, $time));
-        }
-        return $this;
-     }
-
-    /**
      * Send messages to subscribers for this queue
      *
      * @param   int     $count
      * @param   array   $additionalVariables
-     * @return Mage_Newsletter_Model_Queue 
      */
     public function sendPerSubscriber($count=20, array $additionalVariables=array())
     {
@@ -167,36 +129,26 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
             ->setCurPage(1)
             ->load();
 
-        /* @var $sender Mage_Core_Model_Email_Template */
-        $sender = Mage::getModel('core/email_template');
-        $sender->setSenderName($this->getNewsletterSenderName())
-            ->setSenderEmail($this->getNewsletterSenderEmail())
-            ->setTemplateType(self::TYPE_HTML)
-            ->setTemplateSubject($this->getNewsletterSubject())
-            ->setTemplateText($this->getNewsletterText())
-            ->setTemplateStyles($this->getNewsletterStyles())
-            ->setTemplateFilter(Mage::helper('newsletter')->getTemplateProcessor());
-
-        foreach($collection->getItems() as $item) {
-            $email = $item->getSubscriberEmail();
-            $name = $item->getSubscriberFullName();
-
-            $sender->emulateDesign($item->getStoreId());
-            $successSend = $sender->send($email, $name, array('subscriber'=>$item));
-            $sender->revertDesign();
-            
-            if($successSend) {
-                $item->received($this);
-            } else {
-                $problem = Mage::getModel('newsletter/problem');
-                $problem->addSubscriberData($item)
-                    ->addQueueData($queue)
-                    ->addErrorData('Please refer to exeption.log')
-                    ->save();
-
-                $item->received($this);
+        if(!$this->getTemplate()) {
+            $this->addTemplateData($this);
+            if(!$this->getTemplate()->isPreprocessed()) {
+                $this->getTemplate()->preproccess();
             }
         }
+
+        // save current design settings
+        $currentDesignConfig = clone $this->_getDesignConfig();
+        foreach($collection->getItems() as $item) {
+            if ($this->_getDesignConfig()->getStore() != $item->getStoreId()) {
+                $this->_setDesignConfig(array('area' => self::DEFAULT_DESIGN_AREA, 'store' => $item->getStoreId()));
+                $this->_applyDesignConfig();
+            }
+            $this->getTemplate()->send($item, array('subscriber'=>$item), null, $this);
+        }
+
+        // restore previous design settings
+        $this->_setDesignConfig($currentDesignConfig->getData());
+        $this->_applyDesignConfig();
 
         if(count($collection->getItems()) < $count-1 || count($collection->getItems()) == 0) {
             $this->setQueueFinishAt(now());
@@ -206,13 +158,7 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
         return $this;
     }
 
-    /**
-     * Getter data for saving
-     * 
-     * @return array
-     */
-    public function getDataForSave()
-    {
+    public function getDataForSave() {
         $data = array();
         $data['template_id'] = $this->getTemplateId();
         $data['queue_status'] = $this->getQueueStatus();
@@ -221,72 +167,34 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
         return $data;
     }
 
-    /**
-     * Add subscribers to queue.
-     * 
-     * @param array $subscriberIds
-     * @return Mage_Newsletter_Model_Queue
-     */
     public function addSubscribersToQueue(array $subscriberIds)
     {
         $this->_getResource()->addSubscribersToQueue($this, $subscriberIds);
         return $this;
     }
 
-    /**
-     * Setter for save template flag.
-     * 
-     * @param boolean|integer|string $value
-     * @return Mage_Newsletter_Model_Queue
-     * @deprecated since 1.4.0.1
-     */
     public function setSaveTemplateFlag($value)
     {
         $this->_saveTemplateFlag = (boolean)$value;
         return $this;
     }
 
-    /**
-     * Getter for save template flag.
-     * 
-     * @param void
-     * @return boolean
-     * @deprecated since 1.4.0.1
-     */
     public function getSaveTemplateFlag()
     {
         return $this->_saveTemplateFlag;
     }
 
-    /**
-     * Setter for save stores flag.
-     * 
-     * @param boolean|integer|string $value
-     * @return Mage_Newsletter_Model_Queue
-     */
     public function setSaveStoresFlag($value)
     {
         $this->_saveStoresFlag = (boolean)$value;
         return $this;
     }
 
-    /**
-     * Getter for save stores flag.
-     * 
-     * @param void
-     * @return boolean
-     */
     public function getSaveStoresFlag()
     {
         return $this->_saveStoresFlag;
     }
 
-    /**
-     * Setter for stores of queue.
-     * 
-     * @param array
-     * @return Mage_Newsletter_Model_Queue
-     */
     public function setStores(array $storesIds)
     {
         $this->setSaveStoresFlag(true);
@@ -294,11 +202,6 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
         return $this;
     }
 
-    /**
-     * Getter for stores of queue.
-     * 
-     * @return array
-     */
     public function getStores()
     {
         if(!$this->_stores) {
@@ -323,12 +226,67 @@ class Mage_Newsletter_Model_Queue extends Mage_Core_Model_Template
     }
 
     /**
-     * Getter for template type
+     * Setter for design changes
      *
-     * @return int|string
+     * @param   array $config
+     * @return  Mage_Newsletter_Model_Queue
      */
-    public function getType(){
-        return $this->getNewsletterType();
+    protected function _setDesignConfig(array $config)
+    {
+        $this->_getDesignConfig()->setData($config);
+        return $this;
     }
 
+    /**
+     * Getter for design changes
+     *
+     * @return Varien_Object
+     */
+    protected function _getDesignConfig()
+    {
+        if(is_null($this->_designConfig)) {
+
+            $store = is_object(Mage::getDesign()->getStore())
+                ? Mage::getDesign()->getStore()->getId()
+                : Mage::getDesign()->getStore();
+
+            $this->_designConfig = new Varien_Object(array(
+                'area' => Mage::getDesign()->getArea(),
+                'store' => $store
+            ));
+        }
+        return $this->_designConfig;
+    }
+
+    protected function _applyDesignConfig()
+    {
+        $designConfig = $this->_getDesignConfig();
+
+        $design = Mage::getDesign();
+        $designConfig->setOldArea($design->getArea())
+            ->setOldStore($design->getStore());
+
+        if ($designConfig->hasData('area')) {
+            Mage::getDesign()->setArea($designConfig->getArea());
+        }
+
+        if ($designConfig->hasData('store')) {
+            $store = $designConfig->getStore();
+            Mage::app()->setCurrentStore($store);
+
+            $locale = new Zend_Locale(Mage::getStoreConfig(Mage_Core_Model_Locale::XML_PATH_DEFAULT_LOCALE, $store));
+            Mage::app()->getLocale()->setLocale($locale);
+            Mage::app()->getLocale()->setLocaleCode($locale->toString());
+            if ($designConfig->hasData('area')) {
+                Mage::getSingleton('core/translate')->setLocale($locale)
+                    ->init($designConfig->getArea(), true);
+            }
+
+            $design->setStore($store);
+            $design->setTheme('');
+            $design->setPackageName('');
+        }
+
+        return $this;
+    }
 }

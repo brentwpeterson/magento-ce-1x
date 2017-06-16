@@ -141,16 +141,11 @@
 
 				// Move startContainer/startOffset in to a suitable node
 				if (container.nodeType == 1 || container.nodeValue === "") {
-					container = container.nodeType == 1 ? container.childNodes[offset] : container;
-
-					// Might fail if the offset is behind the last element in it's container
-					if (container) {
-						walker = new TreeWalker(container, container.parentNode);
-						for (node = walker.current(); node; node = walker.next()) {
-							if (node.nodeType == 3 && !isWhiteSpaceNode(node)) {
-								rng.setStart(node, 0);
-								break;
-							}
+					walker = new TreeWalker(container.childNodes[offset]);
+					for (node = walker.current(); node; node = walker.next()) {
+						if (node.nodeType == 3 && !isBlock(node.parentNode) && !isWhiteSpaceNode(node)) {
+							rng.setStart(node, 0);
+							break;
 						}
 					}
 				}
@@ -232,7 +227,7 @@
 								}
 							});
 
-							// Continue processing if a selector match wasn't found and a inline element is defined
+							// Contine processing if a selector match wasn't found and a inline element is defined
 							if (!format.inline || found) {
 								currentWrapElm = 0;
 								return;
@@ -325,23 +320,14 @@
 							});
 						});
 
-						// Remove child if direct parent is of same type
-						if (matchNode(node.parentNode, name, vars)) {
-							dom.remove(node, 1);
-							node = 0;
-							return TRUE;
-						}
-
 						// Look for parent with similar style format
-						if (format.merge_with_parents) {
-							dom.getParent(node.parentNode, function(parent) {
-								if (matchNode(parent, name, vars)) {
-									dom.remove(node, 1);
-									node = 0;
-									return TRUE;
-								}
-							});
-						}
+						dom.getParent(node.parentNode, function(parent) {
+							if (matchNode(parent, name, vars)) {
+								dom.remove(node, 1);
+								node = 0;
+								return TRUE;
+							}
+						});
 
 						// Merge next and previous siblings if they are similar <b>text</b><b>text</b> becomes <b>texttext</b>
 						if (node) {
@@ -359,7 +345,7 @@
 					rng.setStartBefore(node);
 					rng.setEndAfter(node);
 
-					applyRngStyle(expandRng(rng, formatList));
+					applyRngStyle(rng);
 				} else {
 					if (!selection.isCollapsed() || !format.inline) {
 						// Apply formatting to selection
@@ -476,13 +462,7 @@
 				var node = dom.get(start ? '_start' : '_end'),
 					out = node[start ? 'firstChild' : 'lastChild'];
 
-				// If the end is placed within the start the result will be removed
-				// So this checks if the out node is a bookmark node if it is it
-				// checks for another more suitable node
-				if (isBookmarkNode(out))
-					out = out[start ? 'firstChild' : 'lastChild'];
-
-				dom.remove(node, true);
+				dom.remove(node, 1);
 
 				return out;
 			};
@@ -545,7 +525,7 @@
 		};
 
 		/**
-		 * Toggles the specified format on/off.
+		 * Toggles the specifed format on/off.
 		 *
 		 * @method toggle
 		 * @param {String} name Name of format to apply/remove.
@@ -566,10 +546,9 @@
 		 * @param {Node} node Node to check the format on.
 		 * @param {String} name Format name to check.
 		 * @param {Object} vars Optional list of variables to replace before checking it.
-		 * @param {Boolean} similar Match format that has similar properties.
 		 * @return {Object} Returns the format object it matches or undefined if it doesn't match.
 		 */
-		function matchNode(node, name, vars, similar) {
+		function matchNode(node, name, vars) {
 			var formatList = get(name), format, i, classes;
 
 			function matchItems(node, format, item_name) {
@@ -586,10 +565,7 @@
 								else
 									value = getStyle(node, key);
 
-								if (similar && !value && !format.exact)
-									return;
-
-								if ((!similar || format.exact) && !isEq(value, replaceVars(items[key], vars)))
+								if (!isEq(value, replaceVars(items[key], vars)))
 									return;
 							}
 						}
@@ -627,7 +603,7 @@
 		};
 
 		/**
-		 * Matches the current selection or specified node against the specified format name.
+		 * Matches the current selection or specifed node against the specified format name.
 		 *
 		 * @method match
 		 * @param {String} name Name of format to match.
@@ -641,7 +617,7 @@
 			function matchParents(node) {
 				// Find first node with similar format settings
 				node = dom.getParent(node, function(node) {
-					return !!matchNode(node, name, vars, true);
+					return !!matchNode(node, name, vars);
 				});
 
 				// Do an exact check on the similar format element
@@ -788,7 +764,7 @@
 		 * Checks if the specified nodes name matches the format inline/block or selector.
 		 *
 		 * @private
-		 * @param {Node} node Node to match against the specified format.
+		 * @param {Node} node Node to match agains the specified format.
 		 * @param {Object} format Format object o match with.
 		 * @return {boolean} true/false if the format matches.
 		 */
@@ -868,7 +844,7 @@
 		};
 
 		function isWhiteSpaceNode(node) {
-			return node && node.nodeType === 3 && /^([\s\r\n]+|)$/.test(node.nodeValue);
+			return node && node.nodeType === 3 && /^\s*$/.test(node.nodeValue);
 		};
 
 		function wrap(node, name, attrs) {
@@ -1066,7 +1042,7 @@
 		 * @param {Object} format Format object with items to remove from node.
 		 * @param {Object} vars Name/value object with variables to apply to format.
 		 * @param {Node} node Node to remove the format styles on.
-		 * @param {Node} compare_node Optional compare node, if specified the styles will be compared to that node.
+		 * @param {Node} compare_node Optional compare node, if specidied the styles will be compared to that node.
 		 * @return {Boolean} True/false if the node was removed or not.
 		 */
 		function removeFormat(format, vars, node, compare_node) {
@@ -1276,7 +1252,7 @@
 			 *
 			 * @private
 			 * @param {Node} node1 First node to compare with.
-			 * @param {Node} node2 Second node to compare with.
+			 * @param {Node} node2 Secont node to compare with.
 			 * @return {boolean} True/false if the nodes are the same or not.
 			 */
 			function compareElements(node1, node2) {
@@ -1405,7 +1381,7 @@
 		 * @return {boolean} True/false if the node is a text block.
 		 */
 		function isTextBlock(name) {
-			return /^(h[1-6]|p|div|pre|address|dl|dt|dd)$/.test(name);
+			return /^(h[1-6]|p|div|pre|address)$/.test(name);
 		};
 
 		function getContainer(rng, start) {
@@ -1471,7 +1447,6 @@
 			// Pending apply or remove formats
 			if (hasPending()) {
 				ed.getDoc().execCommand('FontName', false, 'mceinline');
-				pendingFormats.lastRng = selection.getRng();
 
 				// IE will convert the current word
 				each(dom.select('font,span'), function(node) {
@@ -1491,25 +1466,21 @@
 
 					each('onKeyDown,onKeyUp,onKeyPress,onMouseUp'.split(','), function(event) {
 						ed[event].addToTop(function(ed, e) {
-							// Do we have pending formats and is the selection moved has moved
-							if (hasPending() && !tinymce.dom.RangeUtils.compareRanges(pendingFormats.lastRng, selection.getRng())) {
+							if (hasPending()) {
 								each(dom.select('font,span'), function(node) {
-									var textNode, rng;
+									var bookmark, textNode, rng;
 
 									// Look for marker
 									if (isCaretNode(node)) {
 										textNode = node.firstChild;
 
-										if (textNode) {
-											perform(node);
+										perform(node);
 
-											rng = dom.createRng();
-											rng.setStart(textNode, textNode.nodeValue.length);
-											rng.setEnd(textNode, textNode.nodeValue.length);
-											selection.setRng(rng);
-											ed.nodeChanged();
-										} else
-											dom.remove(node);
+										rng = dom.createRng();
+										rng.setStart(textNode, textNode.nodeValue.length);
+										rng.setEnd(textNode, textNode.nodeValue.length);
+										selection.setRng(rng);
+										ed.nodeChanged();
 									}
 								});
 

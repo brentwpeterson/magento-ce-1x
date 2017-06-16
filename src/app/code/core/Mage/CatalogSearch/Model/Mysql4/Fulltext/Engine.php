@@ -35,6 +35,7 @@ class Mage_CatalogSearch_Model_Mysql4_Fulltext_Engine extends Mage_Core_Model_My
 {
     /**
      * Init resource model
+     *
      */
     protected function _construct()
     {
@@ -89,16 +90,6 @@ class Mage_CatalogSearch_Model_Mysql4_Fulltext_Engine extends Mage_Core_Model_My
     }
 
     /**
-     * Define if current search engine supports advanced index
-     *
-     * @return bool
-     */
-    public function allowAdvancedIndex()
-    {
-        return false;
-    }
-
-    /**
      * Remove entity data from fulltext search table
      *
      * @param int $storeId
@@ -135,16 +126,6 @@ class Mage_CatalogSearch_Model_Mysql4_Fulltext_Engine extends Mage_Core_Model_My
     }
 
     /**
-     * Stub method for compatibility with other search engines
-     *
-     * @return null
-     */
-    public function getResourceName()
-    {
-        return null;
-    }
-
-    /**
      * Retrieve fulltext search result data collection
      *
      * @return Mage_CatalogSearch_Model_Mysql4_Fulltext_Collection
@@ -152,16 +133,6 @@ class Mage_CatalogSearch_Model_Mysql4_Fulltext_Engine extends Mage_Core_Model_My
     public function getResultCollection()
     {
         return Mage::getResourceModel('catalogsearch/fulltext_collection');
-    }
-
-    /**
-     * Retrieve advanced search result data collection
-     *
-     * @return Mage_CatalogSearch_Model_Mysql4_Advanced_Collection
-     */
-    public function getAdvancedResultCollection()
-    {
-        return Mage::getResourceModel('catalogsearch/advanced_collection');
     }
 
     /**

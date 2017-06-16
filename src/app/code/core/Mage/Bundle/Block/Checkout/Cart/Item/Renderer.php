@@ -70,11 +70,7 @@ class Mage_Bundle_Block_Checkout_Cart_Item_Renderer extends Mage_Checkout_Block_
             $bundleOptions = $optionsCollection->appendSelections($selectionsCollection, true);
             foreach ($bundleOptions as $bundleOption) {
                 if ($bundleOption->getSelections()) {
-                    $option = array(
-                        'label' => $bundleOption->getTitle(),
-                        'value' => array()
-                    );
-
+                    $option = array('label' => $bundleOption->getTitle(), "value" => array());
                     $bundleSelections = $bundleOption->getSelections();
 
                     foreach ($bundleSelections as $bundleSelection) {
@@ -85,7 +81,6 @@ class Mage_Bundle_Block_Checkout_Cart_Item_Renderer extends Mage_Checkout_Block_
                 }
             }
         }
-
         return $options;
     }
 
@@ -119,46 +114,8 @@ class Mage_Bundle_Block_Checkout_Cart_Item_Renderer extends Mage_Checkout_Block_
         return 0;
     }
 
-    /**
-     * Overloaded method for getting list of bundle options
-     * Caches result in quote item, because it can be used in cart 'recent view' and on same page in cart checkout
-     *
-     * @return array
-     */
     public function getOptionList()
     {
-        $item = $this->getItem();
-        $optionList = $item->getBlockOptionList();
-        if ($optionList === null) {
-            $optionList = array_merge($this->_getBundleOptions(), parent::getOptionList());
-            $item->setBlockOptionList($optionList);
-        }
-
-        return $optionList;
-    }
-
-    /**
-     * Return cart backorder messages
-     *
-     * @return array
-     */
-    public function getMessages()
-    {
-        $messages = $this->getData('messages');
-        if (is_null($messages)) {
-            $messages = array();
-        }
-        $options = $this->getItem()->getQtyOptions();
-
-        foreach ($options as $option) {
-            if ($option->getMessage()) {
-                $messages[] = array(
-                    'text' => $option->getMessage(),
-                    'type' => ($this->getItem()->getHasError()) ? 'error' : 'notice'
-                );
-            }
-        }
-
-        return $messages;
+        return array_merge($this->_getBundleOptions(), parent::getOptionList());
     }
 }

@@ -179,13 +179,6 @@
                 </Mage_CatalogSearch>
             </modules>
         </translate>
-        <layout>
-            <updates>
-                <catalogsearch>
-                    <file>search.xml</file>
-                </catalogsearch>
-            </updates>
-        </layout>
     </adminhtml>
 
     <default>

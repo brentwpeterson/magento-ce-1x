@@ -287,10 +287,7 @@ class Mage_Downloadable_Model_Product_Type extends Mage_Catalog_Model_Product_Ty
             return $result;
         }
         // if adding product from admin area we add all links to product
-        $originalLinksPurchasedSeparately = null;
         if ($this->getProduct($product)->getSkipCheckRequiredOption()) {
-            $originalLinksPurchasedSeparately = $this->getProduct($product)
-                ->getLinksPurchasedSeparately();
             $this->getProduct($product)->setLinksPurchasedSeparately(false);
         }
         $preparedLinks = array();
@@ -306,10 +303,6 @@ class Mage_Downloadable_Model_Product_Type extends Mage_Catalog_Model_Product_Ty
             foreach ($this->getLinks($product) as $link) {
                 $preparedLinks[] = $link->getId();
             }
-        }
-        if (null !== $originalLinksPurchasedSeparately) {
-            $this->getProduct($product)
-                ->setLinksPurchasedSeparately($originalLinksPurchasedSeparately);
         }
         if ($preparedLinks) {
             $this->getProduct($product)->addCustomOption('downloadable_link_ids', implode(',', $preparedLinks));

@@ -15,9 +15,9 @@
  * @category   Zend
  * @package    Zend_Crypt
  * @subpackage Rsa
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
- * @version    $Id: Rsa.php 22042 2010-04-28 19:33:31Z padraic $
+ * @version    $Id: Rsa.php 16971 2009-07-22 18:05:45Z mikaelkael $
  */
 
 /**
@@ -33,7 +33,7 @@
 /**
  * @category   Zend
  * @package    Zend_Crypt
- * @copyright  Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
 class Zend_Crypt_Rsa
@@ -218,13 +218,8 @@ class Zend_Crypt_Rsa
     public function setPemString($value)
     {
         $this->_pemString = $value;
-        try {
-            $this->_privateKey = new Zend_Crypt_Rsa_Key_Private($this->_pemString, $this->_passPhrase);
-            $this->_publicKey = $this->_privateKey->getPublicKey();
-        } catch (Zend_Crypt_Exception $e) {
-            $this->_privateKey = null;
-            $this->_publicKey = new Zend_Crypt_Rsa_Key_Public($this->_pemString);
-        }
+        $this->_privateKey = new Zend_Crypt_Rsa_Key_Private($this->_pemString, $this->_passPhrase);
+        $this->_publicKey = $this->_privateKey->getPublicKey();
     }
 
     public function setPemPath($value)
@@ -247,7 +242,7 @@ class Zend_Crypt_Rsa
 
     public function setHashAlgorithm($name)
     {
-        switch (strtolower($name)) {
+        switch ($name) {
             case 'md2':
                 $this->_hashAlgorithm = OPENSSL_ALGO_MD2;
                 break;
@@ -256,12 +251,6 @@ class Zend_Crypt_Rsa
                 break;
             case 'md5':
                 $this->_hashAlgorithm = OPENSSL_ALGO_MD5;
-                break;
-            case 'sha1':
-                $this->_hashAlgorithm = OPENSSL_ALGO_SHA1;
-                break;
-            case 'dss1':
-                $this->_hashAlgorithm = OPENSSL_ALGO_DSS1;
                 break;
         }
     }
